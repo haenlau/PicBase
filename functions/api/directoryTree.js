@@ -1,6 +1,6 @@
-import { getDirectoryTree } from '../utils/indexManager';
-import { dualAuthCheck } from '../utils/auth/dualAuth';
-import { fetchPageConfig } from '../utils/sysConfig';
+import { getDirectoryTree } from '../utils/indexManager.js';
+import { dualAuthCheck } from '../utils/auth/dualAuth.js';
+import { fetchPageConfig } from '../utils/sysConfig.js';
 
 /**
  * 目录树 API 端点
