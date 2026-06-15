@@ -1,7 +1,7 @@
 /* ============================================================
-   PicBase Theme - "Editorial Illustration" (Enhanced)
+   PicBase Theme - "Editorial Illustration" (Enhanced v2)
    Flat illustration · Soft vintage · Magazine layout
-   More visible colors, stronger illustrations, magazine feel
+   Heavy SVG line-art: internet elements, nature, city life
    ============================================================ */
 
 body {
@@ -74,6 +74,13 @@ body {
   --card-bg: rgba(42,42,46,.85);
 }
 
+/* ============ HIDE BACKGROUND IMAGES ============ */
+#bg1, #bg2, .background-image1, .background-image2 {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
 /* ============ BACKGROUND - MAGAZINE PAPER ============ */
 body {
   background: var(--cream);
@@ -81,33 +88,137 @@ body {
     url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232D2B28' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
-/* ============ DECORATIVE ILLUSTRATIONS - MORE VISIBLE ============ */
-/* Person reading - top right of upload area */
+/* ============ LOGIN PAGE - FULL ILLUSTRATION SCENE ============ */
+.login {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Cloud upload - top left */
+.login::before {
+  content: '';
+  position: fixed;
+  top: 40px;
+  left: 40px;
+  width: 160px;
+  height: 120px;
+  opacity: .15;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 120' fill='none' stroke='%235B8A8A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M40 80 Q40 60 60 55 Q55 30 80 30 Q105 30 105 55 Q125 55 125 75 Q125 95 105 95 L55 95 Q40 95 40 80Z'/%3E%3Cpath d='M80 95 L80 65'/%3E%3Cpath d='M68 75 L80 65 L92 75'/%3E%3Ctext x='65' y='110' font-size='10' fill='%235B8A8A' stroke='none' font-family='Georgia'%3Eupload%3C/text%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* Globe/world - top right */
+.login::after {
+  content: '';
+  position: fixed;
+  top: 50px;
+  right: 50px;
+  width: 140px;
+  height: 140px;
+  opacity: .12;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140' fill='none' stroke='%23C4735B' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='70' cy='70' r='55'/%3E%3Cellipse cx='70' cy='70' rx='25' ry='55'/%3E%3Cpath d='M15 70 L125 70'/%3E%3Cpath d='M25 40 L115 40'/%3E%3Cpath d='M25 100 L115 100'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* Folder with files - bottom left */
+.login-wrapper::before {
+  content: '';
+  position: fixed;
+  bottom: 40px;
+  left: 50px;
+  width: 150px;
+  height: 130px;
+  opacity: .14;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 130' fill='none' stroke='%238FA88A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 30 L10 120 L140 120 L140 30 L65 30 L55 15 L10 15 Z'/%3E%3Crect x='30' y='45' width='35' height='45' rx='2'/%3E%3Cline x1='36' y1='55' x2='59' y2='55'/%3E%3Cline x1='36' y1='62' x2='59' y2='62'/%3E%3Cline x1='36' y1='69' x2='52' y2='69'/%3E%3Crect x='80' y='40' width='35' height='50' rx='2'/%3E%3Cline x1='86' y1='50' x2='109' y2='50'/%3E%3Cline x1='86' y1='57' x2='109' y2='57'/%3E%3Cline x1='86' y1='64' x2='102' y2='64'/%3E%3Cline x1='86' y1='71' x2='105' y2='71'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* Chain links - bottom right */
+.login-wrapper::after {
+  content: '';
+  position: fixed;
+  bottom: 50px;
+  right: 60px;
+  width: 120px;
+  height: 100px;
+  opacity: .12;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='none' stroke='%23C4A35B' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M25 35 L25 25 Q25 15 35 15 L55 15 Q65 15 65 25 L65 35'/%3E%3Cpath d='M25 35 L65 35'/%3E%3Cpath d='M25 65 L25 75 Q25 85 35 85 L55 85 Q65 85 65 75 L65 65'/%3E%3Cpath d='M25 65 L65 65'/%3E%3Cpath d='M55 40 L55 60'/%3E%3Cpath d='M35 40 L35 60'/%3E%3Cpath d='M75 35 Q85 35 85 45 L85 55 Q85 65 75 65'/%3E%3Cpath d='M105 35 Q95 35 95 45 L95 55 Q95 65 105 65'/%3E%3Cpath d='M75 35 L105 35'/%3E%3Cpath d='M75 65 L105 65'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* ============ LOGIN CONTAINER - MAGAZINE COVER ============ */
+.login-container {
+  background: var(--paper) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 20px 60px var(--shadow-md), 0 8px 24px var(--shadow) !important;
+  backdrop-filter: blur(24px) saturate(1.4);
+  position: relative;
+  overflow: hidden;
+}
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--teal), var(--terracotta), var(--sage), var(--gold));
+}
+.login-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--gold), var(--sage), var(--terracotta), var(--teal));
+}
+
+.login-submit-btn {
+  background: var(--teal) !important;
+  border: 1px solid var(--teal) !important;
+  border-radius: 4px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px;
+  box-shadow: none !important;
+  transition: all .3s ease !important;
+}
+.login-submit-btn:hover {
+  background: var(--teal-light) !important;
+  box-shadow: 0 6px 20px rgba(91,138,138,.30) !important;
+  transform: translateY(-2px);
+}
+
+/* ============ UPLOAD PAGE - DECORATIVE SCENE ============ */
+/* Person reading - upload dragger area */
 .el-upload-dragger::after {
   content: '';
   position: absolute;
   bottom: 16px;
   right: 20px;
-  width: 100px;
-  height: 100px;
-  opacity: .20;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%235B8A8A' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='50' cy='25' r='10'/%3E%3Cpath d='M50 35 L50 65'/%3E%3Cpath d='M35 48 L50 42 L65 48'/%3E%3Cpath d='M40 65 L35 85'/%3E%3Cpath d='M60 65 L65 85'/%3E%3Crect x='65' y='38' width='18' height='24' rx='2'/%3E%3Cline x1='69' y1='44' x2='79' y2='44'/%3E%3Cline x1='69' y1='49' x2='79' y2='49'/%3E%3Cline x1='69' y1='54' x2='75' y2='54'/%3E%3C/svg%3E");
+  width: 110px;
+  height: 110px;
+  opacity: .18;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 110 110' fill='none' stroke='%235B8A8A' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='45' cy='22' r='10'/%3E%3Cpath d='M45 32 L45 62'/%3E%3Cpath d='M30 46 L45 40 L60 46'/%3E%3Cpath d='M35 62 L30 85'/%3E%3Cpath d='M55 62 L60 85'/%3E%3Crect x='62' y='35' width='20' height='26' rx='2'/%3E%3Cline x1='66' y1='42' x2='78' y2='42'/%3E%3Cline x1='66' y1='47' x2='78' y2='47'/%3E%3Cline x1='66' y1='52' x2='74' y2='52'/%3E%3Ctext x='58' y='102' font-size='9' fill='%235B8A8A' stroke='none' font-family='Georgia'%3Ereading%3C/text%3E%3C/svg%3E");
   background-size: contain;
   background-repeat: no-repeat;
   pointer-events: none;
-  transition: opacity .3s ease;
 }
-.el-upload-dragger:hover::after { opacity: .35; }
 
-/* Small dog - near floating button */
+/* Small dog - floating button */
 .floating-btn::before {
   content: '';
   position: absolute;
   bottom: 100%;
   right: 0;
-  width: 56px;
-  height: 56px;
-  opacity: .30;
+  width: 60px;
+  height: 60px;
+  opacity: .25;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60' fill='none' stroke='%23C4735B' stroke-width='1.5' stroke-linecap='round'%3E%3Cellipse cx='30' cy='35' rx='14' ry='9'/%3E%3Ccircle cx='30' cy='22' r='8'/%3E%3Cpath d='M23 17 L18 10'/%3E%3Cpath d='M37 17 L42 10'/%3E%3Ccircle cx='27' cy='21' r='1.5' fill='%23C4735B'/%3E%3Ccircle cx='33' cy='21' r='1.5' fill='%23C4735B'/%3E%3Cpath d='M28 25 L32 25'/%3E%3Cpath d='M16 35 L11 47'/%3E%3Cpath d='M44 35 L49 47'/%3E%3Cpath d='M44 35 L53 28'/%3E%3C/svg%3E");
   background-size: contain;
   background-repeat: no-repeat;
@@ -120,41 +231,57 @@ body {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 250px;
-  height: 50px;
+  width: 300px;
+  height: 60px;
   opacity: .10;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' fill='none' stroke='%232D2B28' stroke-width='1'%3E%3Crect x='5' y='15' width='12' height='25'/%3E%3Crect x='8' y='18' width='3' height='4'/%3E%3Crect x='20' y='8' width='15' height='32'/%3E%3Crect x='23' y='11' width='3' height='4'/%3E%3Crect x='28' y='11' width='3' height='4'/%3E%3Crect x='38' y='20' width='10' height='20'/%3E%3Crect x='52' y='5' width='18' height='35'/%3E%3Crect x='55' y='8' width='4' height='5'/%3E%3Crect x='62' y='8' width='4' height='5'/%3E%3Crect x='55' y='16' width='4' height='5'/%3E%3Crect x='62' y='16' width='4' height='5'/%3E%3Crect x='74' y='12' width='14' height='28'/%3E%3Crect x='77' y='15' width='3' height='4'/%3E%3Crect x='84' y='15' width='3' height='4'/%3E%3Crect x='92' y='18' width='8' height='22'/%3E%3Crect x='104' y='10' width='16' height='30'/%3E%3Crect x='107' y='13' width='4' height='5'/%3E%3Crect x='113' y='13' width='4' height='5'/%3E%3Crect x='107' y='21' width='4' height='5'/%3E%3Crect x='113' y='21' width='4' height='5'/%3E%3Crect x='124' y='15' width='10' height='25'/%3E%3Crect x='138' y='20' width='12' height='20'/%3E%3Crect x='154' y='8' width='14' height='32'/%3E%3Crect x='157' y='11' width='3' height='4'/%3E%3Crect x='164' y='11' width='3' height='4'/%3E%3Crect x='172' y='15' width='10' height='25'/%3E%3Crect x='186' y='22' width='8' height='18'/%3E%3Cline x1='0' y1='40' x2='200' y2='40'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 50' fill='none' stroke='%232D2B28' stroke-width='0.8'%3E%3Crect x='5' y='20' width='12' height='30'/%3E%3Crect x='8' y='23' width='3' height='4'/%3E%3Crect x='20' y='10' width='15' height='40'/%3E%3Crect x='23' y='13' width='3' height='4'/%3E%3Crect x='28' y='13' width='3' height='4'/%3E%3Crect x='38' y='25' width='10' height='25'/%3E%3Crect x='52' y='5' width='18' height='45'/%3E%3Crect x='55' y='8' width='4' height='5'/%3E%3Crect x='62' y='8' width='4' height='5'/%3E%3Crect x='55' y='16' width='4' height='5'/%3E%3Crect x='62' y='16' width='4' height='5'/%3E%3Crect x='74' y='15' width='14' height='35'/%3E%3Crect x='77' y='18' width='3' height='4'/%3E%3Crect x='84' y='18' width='3' height='4'/%3E%3Crect x='92' y='22' width='8' height='28'/%3E%3Crect x='104' y='12' width='16' height='38'/%3E%3Crect x='107' y='15' width='4' height='5'/%3E%3Crect x='113' y='15' width='4' height='5'/%3E%3Crect x='107' y='23' width='4' height='5'/%3E%3Crect x='113' y='23' width='4' height='5'/%3E%3Crect x='124' y='18' width='10' height='32'/%3E%3Crect x='138' y='25' width='12' height='25'/%3E%3Crect x='154' y='10' width='14' height='40'/%3E%3Crect x='157' y='13' width='3' height='4'/%3E%3Crect x='164' y='13' width='3' height='4'/%3E%3Crect x='172' y='18' width='10' height='32'/%3E%3Crect x='186' y='28' width='8' height='22'/%3E%3Crect x='198' y='15' width='15' height='35'/%3E%3Crect x='201' y='18' width='3' height='4'/%3E%3Crect x='208' y='18' width='3' height='4'/%3E%3Crect x='218' y='22' width='10' height='28'/%3E%3Crect x='232' y='8' width='18' height='42'/%3E%3Crect x='235' y='11' width='4' height='5'/%3E%3Crect x='242' y='11' width='4' height='5'/%3E%3Crect x='254' y='20' width='12' height='30'/%3E%3Crect x='270' y='15' width='14' height='35'/%3E%3Crect x='288' y='25' width='8' height='25'/%3E%3Cline x1='0' y1='50' x2='300' y2='50'/%3E%3C/svg%3E");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: bottom right;
   pointer-events: none;
 }
 
-/* Trees - left side of login */
-.login-container::before {
+/* Trees - search card area */
+.admin-dashboard-search-card::before {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: -24px;
-  width: 120px;
-  height: 140px;
-  opacity: .12;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120' fill='none' stroke='%238FA88A' stroke-width='1.5' stroke-linecap='round'%3E%3Cline x1='20' y1='120' x2='20' y2='60'/%3E%3Cpath d='M20 60 L10 45 L15 45 L8 30 L14 30 L10 15 L20 25 L30 15 L26 30 L32 30 L25 45 L30 45 Z'/%3E%3Cline x1='50' y1='120' x2='50' y2='70'/%3E%3Cpath d='M50 70 L42 55 L46 55 L40 40 L46 40 L42 25 L50 32 L58 25 L54 40 L60 40 L54 55 L58 55 Z'/%3E%3Cline x1='80' y1='120' x2='80' y2='50'/%3E%3Cpath d='M80 50 L68 32 L74 32 L65 15 L74 15 L68 0 L80 10 L92 0 L86 15 L95 15 L86 32 L92 32 Z'/%3E%3C/svg%3E");
+  top: -20px;
+  left: 20px;
+  width: 100px;
+  height: 100px;
+  opacity: .10;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%238FA88A' stroke-width='1.5' stroke-linecap='round'%3E%3Cline x1='20' y1='100' x2='20' y2='55'/%3E%3Cpath d='M20 55 L12 42 L16 42 L10 28 L16 28 L12 15 L20 22 L28 15 L24 28 L30 28 L24 42 L28 42 Z'/%3E%3Cline x1='55' y1='100' x2='55' y2='60'/%3E%3Cpath d='M55 60 L47 47 L51 47 L45 33 L51 33 L47 20 L55 27 L63 20 L59 33 L65 33 L59 47 L63 47 Z'/%3E%3Cline x1='85' y1='100' x2='85' y2='50'/%3E%3Cpath d='M85 50 L75 35 L80 35 L73 18 L80 18 L75 3 L85 12 L95 3 L90 18 L97 18 L90 35 L95 35 Z'/%3E%3C/svg%3E");
   background-size: contain;
   background-repeat: no-repeat;
   pointer-events: none;
 }
 
-/* Street lamp - near search */
+/* Street lamp - search card */
 .admin-dashboard-search-card::after {
   content: '';
   position: absolute;
-  top: -12px;
-  right: 24px;
-  width: 36px;
-  height: 72px;
+  top: -15px;
+  right: 30px;
+  width: 40px;
+  height: 80px;
   opacity: .12;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 60' fill='none' stroke='%23C4A35B' stroke-width='1.5' stroke-linecap='round'%3E%3Cline x1='15' y1='60' x2='15' y2='20'/%3E%3Cpath d='M8 20 Q15 10 22 20'/%3E%3Ccircle cx='15' cy='15' r='4'/%3E%3Cline x1='12' y1='60' x2='18' y2='60'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* Birds - top of page */
+body::after {
+  content: '';
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 60px;
+  opacity: .08;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' fill='none' stroke='%232D2B28' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M20 30 Q25 20 30 30 Q35 20 40 30'/%3E%3Cpath d='M60 25 Q65 15 70 25 Q75 15 80 25'/%3E%3Cpath d='M100 20 Q105 10 110 20 Q115 10 120 20'/%3E%3Cpath d='M140 28 Q145 18 150 28 Q155 18 160 28'/%3E%3Cpath d='M170 22 Q175 12 180 22 Q185 12 190 22'/%3E%3C/svg%3E");
   background-size: contain;
   background-repeat: no-repeat;
   pointer-events: none;
@@ -171,7 +298,6 @@ body {
   position: relative;
 }
 
-/* Decorative underline for titles */
 .upload-main-title::after {
   content: '';
   display: block;
@@ -191,6 +317,7 @@ body {
   box-shadow: 0 2px 12px var(--shadow), 0 1px 4px var(--shadow) !important;
   backdrop-filter: var(--glass);
   transition: all .3s ease !important;
+  position: relative;
 }
 
 .upload-list-card:hover, .upload-list-item:hover,
@@ -200,22 +327,19 @@ body {
   border-color: var(--teal) !important;
 }
 
-/* Stats card - colored left border */
 .stats-card, .admin-dashborad-stats {
   border-left: 4px solid var(--teal) !important;
 }
 
-/* Image card - colored top border */
 .imgcard, .admin-dashboard-imgcard {
   border-top: 4px solid var(--terracotta) !important;
 }
 
-/* Search card - colored bottom border */
 .search-card, .admin-dashboard-search-card {
   border-bottom: 4px solid var(--sage) !important;
 }
 
-/* ============ BUTTONS - ELEGANT FLAT ============ */
+/* ============ BUTTONS ============ */
 .el-button--primary {
   background: var(--teal) !important;
   border: 1px solid var(--teal) !important;
@@ -276,7 +400,7 @@ body {
   border-color: var(--navy-light) !important;
 }
 
-/* ============ INPUTS - CLEAN LINES ============ */
+/* ============ INPUTS ============ */
 .el-input__wrapper {
   background: var(--paper) !important;
   border-radius: 4px !important;
@@ -327,41 +451,6 @@ body {
   border-color: var(--teal) !important;
 }
 
-/* ============ LOGIN - MAGAZINE COVER ============ */
-.login-container {
-  background: var(--paper) !important;
-  border: 1px solid var(--line) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 20px 60px var(--shadow-md), 0 8px 24px var(--shadow) !important;
-  backdrop-filter: blur(24px) saturate(1.4);
-  position: relative;
-  overflow: hidden;
-}
-.login-container::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 6px;
-  background: linear-gradient(90deg, var(--teal), var(--terracotta), var(--sage), var(--gold));
-}
-
-.login-submit-btn {
-  background: var(--teal) !important;
-  border: 1px solid var(--teal) !important;
-  border-radius: 4px !important;
-  font-weight: 700 !important;
-  letter-spacing: 1px;
-  box-shadow: none !important;
-  transition: all .3s ease !important;
-}
-.login-submit-btn:hover {
-  background: var(--teal-light) !important;
-  box-shadow: 0 6px 20px rgba(91,138,138,.30) !important;
-  transform: translateY(-2px);
-}
-
 /* ============ ADMIN HEADER ============ */
 .admin-header-content {
   background: var(--paper) !important;
@@ -372,9 +461,7 @@ body {
 .admin-header-content::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 0; left: 0; right: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--teal), var(--terracotta), var(--sage), var(--gold));
 }
@@ -616,10 +703,13 @@ body {
   .login-container { border-radius: 6px !important; margin: 12px; }
   .el-dialog { border-radius: 6px !important; margin: 12px !important; }
   .upload-list-item { border-radius: 4px !important; }
+  .login::before, .login::after,
+  .login-wrapper::before, .login-wrapper::after { display: none; }
 }
 
 /* ============ PRINT ============ */
 @media print {
   body { background: #fff !important; }
   .el-card, .el-dialog { box-shadow: none !important; border: 1px solid #ddd !important; }
+  .login::before, .login::after, body::after { display: none !important; }
 }
