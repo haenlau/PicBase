@@ -23,9 +23,8 @@
 
       <v-divider />
 
-      <!-- 导航菜单 - 统一列表 -->
-      <v-list nav density="comfortable" class="d-flex flex-column fill-height px-2 py-2">
-        <!-- 主导航 -->
+      <!-- 导航菜单 -->
+      <v-list nav density="comfortable" class="px-2 py-2">
         <v-list-item
           v-if="isLoggedIn"
           to="/"
@@ -64,10 +63,8 @@
           <v-list-item-title>配置说明</v-list-item-title>
         </v-list-item>
 
-        <!-- 弹性空间 -->
-        <div class="flex-grow-1"></div>
+        <v-divider class="my-2" />
 
-        <!-- 底部操作 -->
         <v-list-item
           @click="toggleTheme"
           rounded="lg"
