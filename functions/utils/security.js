@@ -3,71 +3,31 @@
  * 提供文件类型校验、安全头、SVG清理等功能
  */
 
-// 允许的文件类型配置
+// 允许的文件类型配置 - 仅图片格式
 export const ALLOWED_MIME_TYPES = {
-  // 图片
   'image/jpeg': ['.jpg', '.jpeg'],
   'image/png': ['.png'],
-  'image/gif': ['.gif'],
   'image/webp': ['.webp'],
-  'image/bmp': ['.bmp'],
+  'image/gif': ['.gif'],
   'image/tiff': ['.tiff', '.tif'],
+  'image/bmp': ['.bmp'],
+  'image/heic': ['.heic'],
+  'image/heif': ['.heif'],
+  'image/avif': ['.avif'],
   'image/svg+xml': ['.svg'],
-  'image/x-icon': ['.ico'],
-  'image/vnd.microsoft.icon': ['.ico'],
-  // 其他安全类型
-  'application/pdf': ['.pdf'],
-  'application/zip': ['.zip'],
-  'application/x-rar-compressed': ['.rar'],
-  'application/x-7z-compressed': ['.7z'],
-  'text/plain': ['.txt'],
-  'text/csv': ['.csv'],
 }
 
-// 危险的MIME类型 - 绝对禁止
-export const BLOCKED_MIME_TYPES = [
-  'text/html',
-  'text/javascript',
-  'application/javascript',
-  'application/x-javascript',
-  'application/xhtml+xml',
-  'application/xml',
-  'text/xml',
-  'application/x-shockwave-flash',
-  'application/java-archive',
-  'application/x-httpd-php',
-  'application/x-perl',
-  'application/x-python',
-  'text/x-python',
-  'application/x-ruby',
-  'text/x-ruby',
-  'application/x-shellscript',
-  'text/x-shellscript',
-  'application/x-executable',
-  'application/x-msdos-program',
-  'application/x-msdownload',
-  'application/x-bat',
-  'application/x-dosexec',
-]
-
-// 危险的文件扩展名
-export const BLOCKED_EXTENSIONS = [
-  '.html', '.htm', '.xhtml',
-  '.js', '.mjs', '.cjs',
-  '.jsx', '.tsx', '.ts',
-  '.php', '.php3', '.php4', '.php5', '.phtml',
-  '.py', '.pyc', '.pyo',
-  '.rb', '.rbw',
-  '.pl', '.pm', '.cgi',
-  '.sh', '.bash', '.csh', '.ksh',
-  '.bat', '.cmd', '.com', '.exe', '.msi', '.scr',
-  '.jsp', '.jspx', '.asp', '.aspx', '.ascx',
-  '.vbs', '.vbe', '.wsf', '.wsh',
-  '.ps1', '.psm1', '.psd1',
-  '.jar', '.war', '.ear',
-  '.class', '.swf',
-  '.dll', '.so', '.dylib',
-  '.action', '.do',
+// 允许的文件扩展名
+export const ALLOWED_EXTENSIONS = [
+  '.jpg', '.jpeg',
+  '.png',
+  '.webp',
+  '.gif',
+  '.tiff', '.tif',
+  '.bmp',
+  '.heic', '.heif',
+  '.avif',
+  '.svg',
 ]
 
 /**
@@ -82,34 +42,18 @@ export function validateFileType(file) {
   // 获取文件扩展名
   const ext = getFileExtension(fileName).toLowerCase()
   
-  // 检查是否在黑名单中
-  if (BLOCKED_EXTENSIONS.includes(ext)) {
+  // 检查扩展名是否在允许列表中
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
     return {
       allowed: false,
-      reason: `File type ${ext} is not allowed for security reasons`
-    }
-  }
-  
-  // 检查MIME类型是否在黑名单中
-  if (BLOCKED_MIME_TYPES.includes(mimeType)) {
-    return {
-      allowed: false,
-      reason: `MIME type ${mimeType} is not allowed for security reasons`
+      reason: `不支持的文件格式: ${ext}。仅支持图片格式 (JPEG, PNG, WebP, GIF, TIFF, BMP, HEIC, AVIF, SVG)`
     }
   }
   
   // 如果有MIME类型，检查是否在白名单中
-  if (mimeType && Object.keys(ALLOWED_MIME_TYPES).length > 0) {
-    if (!ALLOWED_MIME_TYPES[mimeType]) {
-      // MIME不在白名单，但可能是未知类型，检查扩展名
-      const allowedExts = Object.values(ALLOWED_MIME_TYPES).flat()
-      if (!allowedExts.includes(ext)) {
-        return {
-          allowed: false,
-          reason: `File type ${ext} (${mimeType}) is not supported`
-        }
-      }
-    }
+  if (mimeType && !Object.keys(ALLOWED_MIME_TYPES).includes(mimeType)) {
+    // MIME不在白名单，但扩展名在，可能是未知类型，继续检查
+    console.warn(`MIME type ${mimeType} not in whitelist, but extension ${ext} is allowed`)
   }
   
   return { allowed: true }
@@ -176,14 +120,10 @@ export function getSafeContentType(fileName, originalMimeType) {
     '.bmp': 'image/bmp',
     '.tiff': 'image/tiff',
     '.tif': 'image/tiff',
+    '.heic': 'image/heic',
+    '.heif': 'image/heif',
+    '.avif': 'image/avif',
     '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.pdf': 'application/pdf',
-    '.zip': 'application/zip',
-    '.rar': 'application/x-rar-compressed',
-    '.7z': 'application/x-7z-compressed',
-    '.txt': 'text/plain',
-    '.csv': 'text/csv',
   }
   
   return safeMimeMap[ext] || 'application/octet-stream'
@@ -217,9 +157,9 @@ export function setSecurityHeaders(headers, fileName, isInline = true) {
   // 权限策略
   safeHeaders.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   
-  // 对于HTML和SVG，强制下载而不是内联显示
+  // 对于SVG，强制下载而不是内联显示
   const ext = getFileExtension(fileName).toLowerCase()
-  if (ext === '.html' || ext === '.htm' || ext === '.svg') {
+  if (ext === '.svg') {
     safeHeaders.set('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`)
   }
   
