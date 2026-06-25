@@ -3,8 +3,6 @@
     <v-container class="upload-page">
       <v-row justify="center">
         <v-col cols="12" md="10" lg="8">
-          <h1 class="text-h4 font-weight-bold mb-6">{{ t('upload.title') }}</h1>
-
           <!-- Upload Zone -->
           <v-card
             class="upload-zone mb-6"
@@ -15,13 +13,9 @@
             @click="triggerFileInput"
           >
             <v-card-text class="text-center pa-8 pa-md-12">
-              <v-icon
-                size="64"
-                color="primary"
-                class="mb-4"
-              >
-                mdi-cloud-upload-outline
-              </v-icon>
+              <v-avatar size="80" color="primary" rounded="xl" variant="tonal" class="mb-4">
+                <v-icon size="48">mdi-cloud-upload-outline</v-icon>
+              </v-avatar>
               <h2 class="text-h5 font-weight-medium mb-2">
                 {{ t('upload.dragDrop') }}
               </h2>
@@ -31,6 +25,7 @@
               <v-btn
                 color="primary"
                 variant="tonal"
+                size="large"
                 @click.stop="triggerFileInput"
               >
                 {{ t('upload.selectFiles') }}
@@ -48,6 +43,11 @@
 
           <!-- Upload Settings -->
           <v-card v-if="files.length > 0" class="mb-6">
+            <v-card-title class="text-subtitle-1 font-weight-medium">
+              <v-icon class="mr-2">mdi-cog</v-icon>
+              Upload Settings
+            </v-card-title>
+            <v-divider />
             <v-card-text>
               <v-row>
                 <v-col cols="12" sm="6">
@@ -56,6 +56,8 @@
                     :items="channelOptions"
                     :label="t('upload.channel')"
                     prepend-inner-icon="mdi-server-network"
+                    variant="outlined"
+                    density="comfortable"
                   />
                 </v-col>
                 <v-col cols="12" sm="6">
@@ -63,7 +65,10 @@
                     v-model="uploadFolder"
                     :label="t('upload.folder')"
                     prepend-inner-icon="mdi-folder"
+                    variant="outlined"
+                    density="comfortable"
                     clearable
+                    placeholder="/"
                   />
                 </v-col>
               </v-row>
@@ -73,7 +78,10 @@
           <!-- File List -->
           <v-card v-if="files.length > 0" class="mb-6">
             <v-card-title class="d-flex align-center justify-space-between">
-              <span>{{ t('common.selected', { count: files.length }) }}</span>
+              <div>
+                <v-icon class="mr-2">mdi-file-multiple</v-icon>
+                {{ t('common.selected', { count: files.length }) }}
+              </div>
               <div>
                 <v-btn
                   color="primary"
@@ -84,6 +92,7 @@
                   :disabled="pendingFiles === 0"
                   @click="uploadAll"
                 >
+                  <v-icon start>mdi-cloud-upload</v-icon>
                   {{ t('upload.uploadAll') }} ({{ pendingFiles }})
                 </v-btn>
                 <v-btn
@@ -92,6 +101,7 @@
                   size="small"
                   @click="clearFiles"
                 >
+                  <v-icon start>mdi-delete</v-icon>
                   {{ t('upload.clearAll') }}
                 </v-btn>
               </div>
@@ -99,11 +109,10 @@
 
             <v-divider />
 
-            <v-list>
+            <v-list lines="two">
               <v-list-item
                 v-for="file in files"
                 :key="file.id"
-                :subtitle="formatFileSize(file.size)"
               >
                 <template #prepend>
                   <v-icon :color="getFileColor(file.status)">
@@ -111,35 +120,35 @@
                   </v-icon>
                 </template>
 
-                <v-list-item-title>
-                  {{ file.name }}
-                </v-list-item-title>
+                <v-list-item-title>{{ file.name }}</v-list-item-title>
+                <v-list-item-subtitle>
+                  {{ formatFileSize(file.size) }}
+                  <span v-if="file.status === 'uploading'" class="ml-2">
+                    {{ file.progress }}%
+                  </span>
+                  <span v-if="file.error" class="text-error ml-2">
+                    {{ file.error }}
+                  </span>
+                </v-list-item-subtitle>
 
                 <template #append>
-                  <div class="d-flex align-center ga-2">
+                  <div class="d-flex align-center ga-1">
                     <v-progress-circular
                       v-if="file.status === 'uploading'"
                       :model-value="file.progress"
-                      size="24"
+                      size="32"
                       width="3"
                       color="primary"
-                    />
+                    >
+                      <span class="text-caption">{{ file.progress }}</span>
+                    </v-progress-circular>
                     <v-chip
                       v-else-if="file.status === 'completed'"
                       color="success"
                       size="small"
                       variant="tonal"
                     >
-                      {{ t('upload.uploadComplete') }}
-                    </v-chip>
-                    <v-chip
-                      v-else-if="file.status === 'error'"
-                      color="error"
-                      size="small"
-                      variant="tonal"
-                      @click:close="removeFile(file.id)"
-                    >
-                      {{ t('upload.uploadFailed') }}
+                      Done
                     </v-chip>
                     <v-btn
                       v-if="file.status === 'completed' && file.url"
@@ -149,6 +158,16 @@
                       @click="copyLink(file)"
                     >
                       <v-icon>mdi-content-copy</v-icon>
+                    </v-btn>
+                    <v-btn
+                      v-if="file.status === 'error'"
+                      icon
+                      size="small"
+                      variant="text"
+                      color="warning"
+                      @click="retryUpload(file)"
+                    >
+                      <v-icon>mdi-refresh</v-icon>
                     </v-btn>
                     <v-btn
                       icon
@@ -167,25 +186,30 @@
           <!-- Upload History -->
           <v-card v-if="uploadHistory.length > 0">
             <v-card-title class="d-flex align-center justify-space-between">
-              <span>{{ t('upload.history') }}</span>
+              <div>
+                <v-icon class="mr-2">mdi-history</v-icon>
+                {{ t('upload.history') }}
+              </div>
               <v-btn
                 variant="text"
                 size="small"
+                color="error"
                 @click="clearHistory"
               >
                 {{ t('common.delete') }}
               </v-btn>
             </v-card-title>
-            <v-list>
+            <v-divider />
+            <v-list lines="two">
               <v-list-item
                 v-for="(item, index) in uploadHistory"
                 :key="index"
-                :subtitle="formatDateTime(item.time)"
               >
                 <template #prepend>
                   <v-icon>mdi-image</v-icon>
                 </template>
                 <v-list-item-title>{{ item.name }}</v-list-item-title>
+                <v-list-item-subtitle>{{ formatDateTime(item.time) }}</v-list-item-subtitle>
                 <template #append>
                   <v-btn
                     icon
@@ -307,6 +331,13 @@ const uploadAll = async () => {
   showMessage(t('upload.uploadComplete'), 'success')
 }
 
+const retryUpload = async (file) => {
+  file.status = 'pending'
+  file.error = null
+  file.progress = 0
+  await uploadStore.uploadFile(file)
+}
+
 const copyLink = async (file) => {
   const fullUrl = `${window.location.origin}${file.url}`
   const success = await copyToClipboard(fullUrl)
@@ -361,15 +392,17 @@ const getFileColor = (status) => {
   border: 2px dashed rgb(var(--v-theme-outline));
   cursor: pointer;
   transition: all 0.2s ease;
+  background: rgb(var(--v-theme-surface));
 }
 
 .upload-zone:hover {
   border-color: rgb(var(--v-theme-primary));
-  background: rgb(var(--v-theme-primary), 0.05);
+  background: rgba(var(--v-theme-primary), 0.04);
 }
 
 .upload-zone--active {
   border-color: rgb(var(--v-theme-primary));
-  background: rgb(var(--v-theme-primary), 0.1);
+  background: rgba(var(--v-theme-primary), 0.08);
+  transform: scale(1.01);
 }
 </style>
