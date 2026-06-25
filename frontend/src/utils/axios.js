@@ -24,16 +24,18 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
-    if (error.response) {
-      // Handle 401 Unauthorized
-      if (error.response.status === 401) {
-        // Redirect to login if not already on login page
-        const currentPath = window.location.pathname
-        if (currentPath.startsWith('/admin')) {
-          window.location.href = '/admin/login'
-        } else if (currentPath !== '/login') {
-          window.location.href = '/login'
-        }
+    // Don't redirect on session check or login pages
+    const url = error.config?.url || ''
+    const isAuthRequest = url.includes('/api/auth/')
+    const isLoginPage = window.location.pathname.includes('/login')
+    
+    if (error.response?.status === 401 && !isAuthRequest && !isLoginPage) {
+      // Only redirect for non-auth requests on non-login pages
+      const currentPath = window.location.pathname
+      if (currentPath.startsWith('/admin')) {
+        window.location.href = '/admin/login'
+      } else {
+        window.location.href = '/login'
       }
     }
     return Promise.reject(error)

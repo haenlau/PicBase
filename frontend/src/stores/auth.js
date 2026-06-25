@@ -22,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = null
       }
     } catch (error) {
+      // Session check failed - user is not authenticated
       isAuthenticated.value = false
       isAdmin.value = false
       user.value = null
