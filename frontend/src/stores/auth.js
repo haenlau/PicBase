@@ -12,17 +12,18 @@ export const useAuthStore = defineStore('auth', () => {
   const checkSession = async () => {
     try {
       const response = await api.get('/api/auth/sessionCheck')
-      if (response.data.authenticated) {
+      const data = response.data
+      
+      if (data.valid) {
         isAuthenticated.value = true
-        isAdmin.value = response.data.isAdmin || false
-        user.value = response.data.user || {}
+        isAdmin.value = data.authType === 'admin'
+        user.value = { authType: data.authType }
       } else {
         isAuthenticated.value = false
         isAdmin.value = false
         user.value = null
       }
     } catch (error) {
-      // Session check failed - user is not authenticated
       isAuthenticated.value = false
       isAdmin.value = false
       user.value = null
@@ -53,7 +54,10 @@ export const useAuthStore = defineStore('auth', () => {
   const adminLogin = async (username, password) => {
     loading.value = true
     try {
-      const response = await api.post('/api/auth/adminLogin', { username, password })
+      const response = await api.post('/api/auth/adminLogin', { 
+        username: username || '', 
+        password: password || '' 
+      })
       if (response.status === 200) {
         isAuthenticated.value = true
         isAdmin.value = true
@@ -63,7 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       return { 
         success: false, 
-        message: error.response?.data || 'Login failed' 
+        message: error.response?.data?.error || error.response?.data || 'Login failed' 
       }
     } finally {
       loading.value = false
