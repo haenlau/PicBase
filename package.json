@@ -1,12 +1,16 @@
 {
-  "name": "cloudflare-imgbed",
-  "version": "2.7.3",
-  "type": "module",
+  "name": "picbase",
+  "version": "3.0.0",
+  "private": true,
+  "description": "A modern file hosting solution powered by Cloudflare",
+  "author": "PicBase",
+  "license": "MIT",
   "scripts": {
-    "ci-test": "concurrently --kill-others \"npm start\" \"wait-on http://localhost:8080 && mocha\"",
-    "test": "mocha",
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "preview": "cd frontend && npm run preview",
     "start": "npx wrangler pages dev ./frontend-dist --kv \"img_url\" --r2 \"img_r2\" --ip 0.0.0.0 --port 8080 --persist-to ./data",
-    "deploy:worker": "node deploy/worker/generate-routes.js && npx wrangler deploy --config deploy/worker/wrangler.toml"
+    "start:local": "npx wrangler pages dev ./frontend-dist --kv \"img_url\" --r2 \"img_r2\" --ip 0.0.0.0 --port 8080 --persist-to ./data --local"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.726.1",

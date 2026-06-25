@@ -1,0 +1,60 @@
+export const themes = {
+  light: {
+    dark: false,
+    colors: {
+      primary: '#6750A4',
+      'primary-darken-1': '#21005D',
+      secondary: '#625B71',
+      'secondary-darken-1': '#1D192B',
+      tertiary: '#7D5260',
+      'tertiary-darken-1': '#31111D',
+      error: '#B3261E',
+      'error-darken-1': '#601410',
+      success: '#386A20',
+      'success-darken-1': '#1F3712',
+      warning: '#7D5700',
+      'warning-darken-1': '#2A1800',
+      info: '#00639B',
+      'info-darken-1': '#001D31',
+      background: '#FEF7FF',
+      surface: '#FFFBFE',
+      'surface-variant': '#E7E0EC',
+      'on-surface': '#1C1B1F',
+      'on-surface-variant': '#49454F',
+      'on-primary': '#FFFFFF',
+      'on-secondary': '#FFFFFF',
+      'on-error': '#FFFFFF',
+      outline: '#CAC4D0',
+      'outline-variant': '#79747E'
+    }
+  },
+  dark: {
+    dark: true,
+    colors: {
+      primary: '#D0BCFF',
+      'primary-darken-1': '#381E72',
+      secondary: '#CCC2DC',
+      'secondary-darken-1': '#332D41',
+      tertiary: '#EFB8C8',
+      'tertiary-darken-1': '#492532',
+      error: '#F2B8B5',
+      'error-darken-1': '#8C1D18',
+      success: '#A8DAB5',
+      'success-darken-1': '#1F3712',
+      warning: '#FFDDB3',
+      'warning-darken-1': '#2A1800',
+      info: '#CEE5FF',
+      'info-darken-1': '#001D31',
+      background: '#1C1B1F',
+      surface: '#2B2930',
+      'surface-variant': '#49454F',
+      'on-surface': '#E6E1E5',
+      'on-surface-variant': '#CAC4D0',
+      'on-primary': '#381E72',
+      'on-secondary': '#332D41',
+      'on-error': '#601410',
+      outline: '#938F99',
+      'outline-variant': '#49454F'
+    }
+  }
+}
