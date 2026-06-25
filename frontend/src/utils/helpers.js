@@ -1,96 +1,93 @@
-export const formatFileSize = (bytes) => {
-  if (bytes === 0 || bytes === undefined || bytes === null) return '0 B'
-  
-  // 确保 bytes 是数字
-  const numBytes = typeof bytes === 'string' ? parseFloat(bytes) : bytes
-  if (isNaN(numBytes)) return '0 B'
-  
+export function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 B'
   const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(Math.abs(numBytes)) / Math.log(k))
-  const index = Math.min(i, sizes.length - 1)
-  
-  return parseFloat((numBytes / Math.pow(k, index)).toFixed(2)) + ' ' + sizes[index]
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-/**
- * 从后端返回的FileSize字符串解析字节数
- * 后端存储的FileSize可能是 "2.5" (MB) 或 "2.5MB" 格式
- */
-export const parseFileSize = (sizeStr, sizeBytes) => {
-  // 优先使用 FileSizeBytes 字段
-  if (sizeBytes) {
-    const num = typeof sizeBytes === 'string' ? parseFloat(sizeBytes) : sizeBytes
-    if (!isNaN(num) && num > 0) return num
+export function formatTime(timestamp) {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diff = now - date
+  
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
+  
+  return date.toLocaleDateString('zh-CN')
+}
+
+export function getFileType(mimeType, fileName) {
+  if (!mimeType && fileName) {
+    const ext = fileName.split('.').pop().toLowerCase()
+    const extMap = {
+      'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'gif': 'image',
+      'webp': 'image', 'svg': 'image', 'bmp': 'image',
+      'mp4': 'video', 'webm': 'video', 'mov': 'video',
+      'mp3': 'audio', 'wav': 'audio', 'ogg': 'audio',
+      'pdf': 'document', 'doc': 'document', 'docx': 'document',
+      'zip': 'archive', 'rar': 'archive', '7z': 'archive'
+    }
+    return extMap[ext] || 'other'
   }
   
-  // 解析 FileSize 字段
-  if (!sizeStr) return 0
-  
-  const str = sizeStr.toString()
-  const numMatch = str.match(/[\d.]+/)
-  if (!numMatch) return 0
-  
-  const num = parseFloat(numMatch[0])
-  if (isNaN(num)) return 0
-  
-  // 如果数字小于1000，假设是MB单位
-  if (num < 1000) {
-    return num * 1024 * 1024
-  }
-  return num
-}
-
-export const formatDate = (timestamp) => {
-  const date = new Date(timestamp)
-  return date.toLocaleDateString()
-}
-
-export const formatDateTime = (timestamp) => {
-  const date = new Date(timestamp)
-  return date.toLocaleString()
-}
-
-export const getFileExtension = (filename) => {
-  return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2).toLowerCase()
-}
-
-export const getFileType = (mimeType) => {
   if (mimeType.startsWith('image/')) return 'image'
   if (mimeType.startsWith('video/')) return 'video'
   if (mimeType.startsWith('audio/')) return 'audio'
-  if (mimeType === 'application/pdf') return 'pdf'
-  return 'file'
+  if (mimeType.includes('pdf') || mimeType.includes('document')) return 'document'
+  return 'other'
 }
 
-export const isImageFile = (mimeType) => {
-  return mimeType && mimeType.startsWith('image/')
+export function getFileIcon(type) {
+  const icons = {
+    image: 'image',
+    video: 'videocam',
+    audio: 'audiotrack',
+    document: 'description',
+    archive: 'folder_zip',
+    other: 'insert_drive_file'
+  }
+  return icons[type] || 'insert_drive_file'
 }
 
-export const copyToClipboard = async (text) => {
+export function getFileColor(type) {
+  const colors = {
+    image: '#ff6b6b',
+    video: '#4ecdc4',
+    audio: '#45b7d1',
+    document: '#96ceb4',
+    archive: '#ffeaa7',
+    other: '#a0a0a0'
+  }
+  return colors[type] || '#a0a0a0'
+}
+
+export async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text)
     return true
-  } catch (error) {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea')
-    textArea.value = text
-    textArea.style.position = 'fixed'
-    textArea.style.left = '-999999px'
-    document.body.appendChild(textArea)
-    textArea.select()
+  } catch {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    document.body.appendChild(textarea)
+    textarea.select()
     try {
       document.execCommand('copy')
       return true
-    } catch (e) {
+    } catch {
       return false
     } finally {
-      document.body.removeChild(textArea)
+      document.body.removeChild(textarea)
     }
   }
 }
 
-export const generateId = (length = 8) => {
+export function generateId(length = 8) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''
   for (let i = 0; i < length; i++) {
@@ -99,21 +96,10 @@ export const generateId = (length = 8) => {
   return result
 }
 
-export const debounce = (fn, delay = 300) => {
-  let timeoutId
+export function debounce(fn, delay = 300) {
+  let timer
   return (...args) => {
-    clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => fn(...args), delay)
-  }
-}
-
-export const throttle = (fn, limit = 300) => {
-  let inThrottle
-  return (...args) => {
-    if (!inThrottle) {
-      fn(...args)
-      inThrottle = true
-      setTimeout(() => (inThrottle = false), limit)
-    }
+    clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), delay)
   }
 }

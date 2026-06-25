@@ -1,584 +1,560 @@
 <template>
-  <UserLayout>
-    <v-container class="upload-page">
-      <v-row justify="center">
-        <v-col cols="12" md="10" lg="8">
-          <!-- Upload Zone -->
-          <v-card
-            class="upload-zone mb-6"
-            :class="{ 'upload-zone--active': dragover }"
-            @drop.prevent="handleDrop"
-            @dragover.prevent="handleDragover"
-            @dragleave="handleDragleave"
-            @click="triggerFileInput"
-          >
-            <v-card-text class="text-center pa-8 pa-md-12">
-              <v-avatar size="80" color="primary" rounded="xl" variant="tonal" class="mb-4">
-                <v-icon size="48">mdi-cloud-upload-outline</v-icon>
-              </v-avatar>
-              <h2 class="text-h5 font-weight-medium mb-2">
-                {{ t('upload.dragDrop') }}
-              </h2>
-              <p class="text-body-1 text-medium-emphasis mb-4">
-                {{ t('upload.orClick') }}
-              </p>
-              <v-btn
-                color="primary"
-                variant="tonal"
-                size="large"
-                @click.stop="triggerFileInput"
-                :disabled="!hasChannels"
-              >
-                {{ t('upload.selectFiles') }}
-              </v-btn>
-            </v-card-text>
-          </v-card>
+  <div class="upload-page" @drop.prevent="handleDrop" @dragover.prevent="handleDragOver" @dragleave="handleDragLeave">
+    <div class="container">
+      <!-- 上传区域 -->
+      <div class="upload-zone glass-card" :class="{ 'drag-over': isDragOver }" @click="triggerFileInput">
+        <div class="upload-icon">
+          <span class="material-icons-outlined">cloud_upload</span>
+        </div>
+        <h2 class="upload-title">拖拽文件到此处上传</h2>
+        <p class="upload-subtitle">或点击选择文件</p>
+        <button class="btn btn-primary btn-lg" @click.stop="triggerFileInput">
+          <span class="material-icons-outlined">folder_open</span>
+          选择文件
+        </button>
+        <p class="upload-hint">支持 Ctrl+V 粘贴上传</p>
+        <input
+          ref="fileInput"
+          type="file"
+          multiple
+          class="hidden"
+          @change="handleFileSelect"
+        />
+      </div>
 
-          <input
-            ref="fileInput"
-            type="file"
-            multiple
-            class="d-none"
-            @change="handleFileSelect"
-          />
+      <!-- 上传设置 -->
+      <div class="upload-settings glass" v-if="channels.length > 0">
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="material-icons-outlined">cloud</span>
+            上传渠道
+          </label>
+          <select class="select" v-model="selectedChannel">
+            <option v-for="ch in channels" :key="ch.name" :value="ch">
+              {{ ch.name }}
+            </option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label class="setting-label">
+            <span class="material-icons-outlined">folder</span>
+            上传目录
+          </label>
+          <input class="input" v-model="uploadFolder" placeholder="可选" />
+        </div>
+      </div>
 
-          <!-- No Channels Warning -->
-          <v-alert
-            v-if="!hasChannels && !loadingChannels"
-            type="warning"
-            variant="tonal"
-            class="mb-6"
-            prominent
-          >
-            <template #prepend>
-              <v-icon size="32">mdi-alert-circle</v-icon>
-            </template>
-            <v-alert-title>No Upload Channels Configured</v-alert-title>
-            <span>Please configure at least one storage channel before uploading files.</span>
-            <template #append>
-              <v-btn
-                color="warning"
-                variant="tonal"
-                to="/admin/channels"
-              >
-                Configure Channels
-              </v-btn>
-            </template>
-          </v-alert>
+      <!-- 无渠道提示 -->
+      <div class="no-channels glass" v-if="channels.length === 0 && !loadingChannels">
+        <span class="material-icons-outlined">warning</span>
+        <p>未配置存储渠道</p>
+        <router-link to="/admin" class="btn btn-primary">去配置</router-link>
+      </div>
 
-          <!-- Upload Settings -->
-          <v-card v-if="files.length > 0 && hasChannels" class="mb-6">
-            <v-card-title class="text-subtitle-1 font-weight-medium">
-              <v-icon class="mr-2">mdi-cog</v-icon>
-              Upload Settings
-            </v-card-title>
-            <v-divider />
-            <v-card-text>
-              <v-row>
-                <v-col cols="12" sm="6">
-                  <v-select
-                    v-model="selectedChannel"
-                    :items="channelOptions"
-                    :label="t('upload.channel')"
-                    prepend-inner-icon="mdi-server-network"
-                    variant="outlined"
-                    density="comfortable"
-                  />
-                </v-col>
-                <v-col cols="12" sm="6">
-                  <v-text-field
-                    v-model="uploadFolder"
-                    :label="t('upload.folder')"
-                    prepend-inner-icon="mdi-folder"
-                    variant="outlined"
-                    density="comfortable"
-                    clearable
-                    placeholder="/"
-                  />
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
-
-          <!-- File List -->
-          <v-card v-if="files.length > 0" class="mb-6">
-            <v-card-title class="d-flex align-center justify-space-between">
-              <div>
-                <v-icon class="mr-2">mdi-file-multiple</v-icon>
-                {{ t('common.selected', { count: files.length }) }}
+      <!-- 文件列表 -->
+      <div class="file-list" v-if="files.length > 0">
+        <div class="file-list-header">
+          <h3>待上传 ({{ files.length }})</h3>
+          <div class="file-list-actions">
+            <button class="btn btn-primary" @click="uploadAll" :disabled="uploading">
+              <span class="material-icons-outlined">cloud_upload</span>
+              全部上传
+            </button>
+            <button class="btn btn-secondary" @click="clearFiles">
+              <span class="material-icons-outlined">delete_outline</span>
+              清空
+            </button>
+          </div>
+        </div>
+        
+        <div class="file-items">
+          <div class="file-item glass" v-for="file in files" :key="file.id">
+            <div class="file-icon" :style="{ color: file.color }">
+              <span class="material-icons-outlined">{{ file.icon }}</span>
+            </div>
+            <div class="file-info">
+              <div class="file-name">{{ file.name }}</div>
+              <div class="file-meta">
+                <span>{{ file.sizeText }}</span>
+                <span v-if="file.compressed" class="tag tag-success">已压缩</span>
               </div>
-              <div>
-                <v-btn
-                  color="primary"
-                  variant="tonal"
-                  size="small"
-                  class="mr-2"
-                  :loading="uploading"
-                  :disabled="pendingFiles === 0 || !hasChannels"
-                  @click="uploadAll"
-                >
-                  <v-icon start>mdi-cloud-upload</v-icon>
-                  {{ t('upload.uploadAll') }} ({{ pendingFiles }})
-                </v-btn>
-                <v-btn
-                  color="error"
-                  variant="tonal"
-                  size="small"
-                  @click="clearFiles"
-                >
-                  <v-icon start>mdi-delete</v-icon>
-                  {{ t('upload.clearAll') }}
-                </v-btn>
+              <div class="file-progress" v-if="file.status === 'uploading'">
+                <div class="progress-bar">
+                  <div class="progress-fill" :style="{ width: file.progress + '%' }"></div>
+                </div>
+                <span class="progress-text">{{ file.progress }}%</span>
               </div>
-            </v-card-title>
+            </div>
+            <div class="file-status">
+              <span v-if="file.status === 'pending'" class="material-icons-outlined text-muted">schedule</span>
+              <span v-if="file.status === 'uploading'" class="material-icons-outlined text-primary spinning">sync</span>
+              <span v-if="file.status === 'success'" class="material-icons-outlined text-success">check_circle</span>
+              <span v-if="file.status === 'error'" class="material-icons-outlined text-error">error</span>
+            </div>
+            <div class="file-actions">
+              <button v-if="file.status === 'success'" class="btn-icon" @click="showLink(file)" title="复制链接">
+                <span class="material-icons-outlined">link</span>
+              </button>
+              <button v-if="file.status === 'error'" class="btn-icon" @click="retryUpload(file)" title="重试">
+                <span class="material-icons-outlined">refresh</span>
+              </button>
+              <button class="btn-icon" @click="removeFile(file.id)" title="移除">
+                <span class="material-icons-outlined">close</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-            <v-divider />
-
-            <v-list lines="two">
-              <v-list-item
-                v-for="file in files"
-                :key="file.id"
-              >
-                <template #prepend>
-                  <v-icon :color="getFileColor(file.status)">
-                    {{ getFileIcon(file.status) }}
-                  </v-icon>
-                </template>
-
-                <v-list-item-title>{{ file.name }}</v-list-item-title>
-                <v-list-item-subtitle>
-                  {{ formatFileSize(file.size) }}
-                  <span v-if="file.status === 'uploading'" class="ml-2">
-                    {{ file.progress }}%
-                  </span>
-                  <span v-if="file.error" class="text-error ml-2">
-                    {{ file.error }}
-                  </span>
-                </v-list-item-subtitle>
-
-                <template #append>
-                  <div class="d-flex align-center ga-1">
-                    <v-progress-circular
-                      v-if="file.status === 'uploading'"
-                      :model-value="file.progress"
-                      size="32"
-                      width="3"
-                      color="primary"
-                    >
-                      <span class="text-caption">{{ file.progress }}</span>
-                    </v-progress-circular>
-                    <v-chip
-                      v-else-if="file.status === 'completed'"
-                      color="success"
-                      size="small"
-                      variant="tonal"
-                    >
-                      Done
-                    </v-chip>
-                    <v-btn
-                      v-if="file.status === 'completed' && file.url"
-                      icon
-                      size="small"
-                      variant="text"
-                      @click="showLinkDialog(file)"
-                    >
-                      <v-icon>mdi-content-copy</v-icon>
-                    </v-btn>
-                    <v-btn
-                      v-if="file.status === 'error'"
-                      icon
-                      size="small"
-                      variant="text"
-                      color="warning"
-                      @click="retryUpload(file)"
-                    >
-                      <v-icon>mdi-refresh</v-icon>
-                    </v-btn>
-                    <v-btn
-                      icon
-                      size="small"
-                      variant="text"
-                      @click="removeFile(file.id)"
-                    >
-                      <v-icon>mdi-close</v-icon>
-                    </v-btn>
-                  </div>
-                </template>
-              </v-list-item>
-            </v-list>
-          </v-card>
-
-          <!-- Upload History -->
-          <v-card v-if="uploadHistory.length > 0">
-            <v-card-title class="d-flex align-center justify-space-between">
-              <div>
-                <v-icon class="mr-2">mdi-history</v-icon>
-                {{ t('upload.history') }}
-              </div>
-              <v-btn
-                variant="text"
-                size="small"
-                color="error"
-                @click="clearHistory"
-              >
-                {{ t('common.delete') }}
-              </v-btn>
-            </v-card-title>
-            <v-divider />
-            <v-list lines="two">
-              <v-list-item
-                v-for="(item, index) in uploadHistory"
-                :key="index"
-              >
-                <template #prepend>
-                  <v-icon>mdi-image</v-icon>
-                </template>
-                <v-list-item-title>{{ item.name }}</v-list-item-title>
-                <v-list-item-subtitle>{{ formatDateTime(item.time) }}</v-list-item-subtitle>
-                <template #append>
-                  <div class="d-flex align-center ga-1">
-                    <v-btn
-                      icon
-                      size="small"
-                      variant="text"
-                      @click="showHistoryLinkDialog(item)"
-                    >
-                      <v-icon>mdi-link</v-icon>
-                    </v-btn>
-                    <v-btn
-                      icon
-                      size="small"
-                      variant="text"
-                      @click="copyHistoryLink(item)"
-                    >
-                      <v-icon>mdi-content-copy</v-icon>
-                    </v-btn>
-                  </div>
-                </template>
-              </v-list-item>
-            </v-list>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-container>
-
-    <!-- Link Format Dialog -->
-    <v-dialog v-model="showLinkFormatDialog" max-width="500">
-      <v-card v-if="linkDialogFile">
-        <v-card-title class="d-flex align-center justify-space-between">
-          <span>
-            <v-icon class="mr-2">mdi-link</v-icon>
-            Copy Link
-          </span>
-          <v-btn icon variant="text" @click="showLinkFormatDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-        <v-divider />
-        <v-card-text>
-          <v-list>
-            <v-list-item>
-              <template #prepend>
-                <v-icon color="primary">mdi-link-variant</v-icon>
-              </template>
-              <v-list-item-title class="text-caption font-weight-bold">Direct Link</v-list-item-title>
-              <v-list-item-subtitle class="text-truncate">{{ getDirectLink(linkDialogFile) }}</v-list-item-subtitle>
-              <template #append>
-                <v-btn size="small" variant="tonal" @click="copyText(getDirectLink(linkDialogFile))">
-                  <v-icon start size="small">mdi-content-copy</v-icon>
-                  Copy
-                </v-btn>
-              </template>
-            </v-list-item>
-            <v-divider />
-            <v-list-item>
-              <template #prepend>
-                <v-icon color="success">mdi-language-markdown</v-icon>
-              </template>
-              <v-list-item-title class="text-caption font-weight-bold">Markdown</v-list-item-title>
-              <v-list-item-subtitle class="text-truncate">{{ getMarkdownLink(linkDialogFile) }}</v-list-item-subtitle>
-              <template #append>
-                <v-btn size="small" variant="tonal" @click="copyText(getMarkdownLink(linkDialogFile))">
-                  <v-icon start size="small">mdi-content-copy</v-icon>
-                  Copy
-                </v-btn>
-              </template>
-            </v-list-item>
-            <v-divider />
-            <v-list-item>
-              <template #prepend>
-                <v-icon color="info">mdi-language-html5</v-icon>
-              </template>
-              <v-list-item-title class="text-caption font-weight-bold">HTML</v-list-item-title>
-              <v-list-item-subtitle class="text-truncate">{{ getHtmlLink(linkDialogFile) }}</v-list-item-subtitle>
-              <template #append>
-                <v-btn size="small" variant="tonal" @click="copyText(getHtmlLink(linkDialogFile))">
-                  <v-icon start size="small">mdi-content-copy</v-icon>
-                  Copy
-                </v-btn>
-              </template>
-            </v-list-item>
-            <v-divider />
-            <v-list-item>
-              <template #prepend>
-                <v-icon color="warning">mdi-code-brackets</v-icon>
-              </template>
-              <v-list-item-title class="text-caption font-weight-bold">BBCode</v-list-item-title>
-              <v-list-item-subtitle class="text-truncate">{{ getBBCodeLink(linkDialogFile) }}</v-list-item-subtitle>
-              <template #append>
-                <v-btn size="small" variant="tonal" @click="copyText(getBBCodeLink(linkDialogFile))">
-                  <v-icon start size="small">mdi-content-copy</v-icon>
-                  Copy
-                </v-btn>
-              </template>
-            </v-list-item>
-          </v-list>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-
-    <!-- Snackbar -->
-    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000">
-      {{ snackbarText }}
-    </v-snackbar>
-  </UserLayout>
+    <!-- 链接弹窗 -->
+    <LinkDialog ref="linkDialog" :fileUrl="linkFile.url" :fileName="linkFile.name" />
+    
+    <!-- Toast -->
+    <Toast ref="toast" />
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useUploadStore } from '@/stores/upload'
-import { formatFileSize, formatDateTime, copyToClipboard } from '@/utils/helpers'
-import UserLayout from '@/layouts/UserLayout.vue'
-
-const { t } = useI18n()
-const uploadStore = useUploadStore()
+import { ref, onMounted, onUnmounted } from 'vue'
+import { getFileType, getFileIcon, getFileColor, formatFileSize, generateId } from '@/utils/helpers'
+import { compressImage } from '@/utils/compress'
+import api from '@/utils/api'
+import NavBar from '@/components/NavBar.vue'
+import LinkDialog from '@/components/LinkDialog.vue'
+import Toast from '@/components/Toast.vue'
 
 const fileInput = ref(null)
-const dragover = ref(false)
-const snackbar = ref(false)
-const snackbarText = ref('')
-const snackbarColor = ref('success')
+const linkDialog = ref(null)
+const toast = ref(null)
+
+const isDragOver = ref(false)
+const uploading = ref(false)
 const loadingChannels = ref(true)
-const showLinkFormatDialog = ref(false)
-const linkDialogFile = ref(null)
+const channels = ref([])
+const selectedChannel = ref(null)
+const uploadFolder = ref('')
+const files = ref([])
+const linkFile = ref({ url: '', name: '' })
 
-const files = computed(() => uploadStore.files)
-const uploading = computed(() => uploadStore.uploading)
-const uploadHistory = computed(() => uploadStore.uploadHistory)
-const pendingFiles = computed(() => uploadStore.files.filter(f => f.status === 'pending').length)
-
-const hasChannels = computed(() => {
-  const channels = uploadStore.channels
-  return Object.values(channels).some(arr => Array.isArray(arr) && arr.length > 0)
+onMounted(() => {
+  fetchChannels()
+  document.addEventListener('paste', handlePaste)
 })
 
-const channelOptions = computed(() => {
-  const channels = uploadStore.channels
-  const options = []
-  for (const [type, data] of Object.entries(channels)) {
-    if (data && Array.isArray(data) && data.length > 0) {
-      data.forEach(ch => {
-        options.push({
-          title: ch.name || type,
-          value: `${type}::${ch.name}`
+onUnmounted(() => {
+  document.removeEventListener('paste', handlePaste)
+})
+
+async function fetchChannels() {
+  try {
+    const data = await api.get('/api/channels')
+    channels.value = []
+    
+    for (const [type, channelList] of Object.entries(data)) {
+      if (Array.isArray(channelList)) {
+        channelList.forEach(ch => {
+          channels.value.push({
+            ...ch,
+            type,
+            fullName: `${ch.name} (${type})`
+          })
         })
-      })
+      }
     }
+    
+    if (channels.value.length > 0) {
+      selectedChannel.value = channels.value[0]
+    }
+  } catch (err) {
+    console.error('Failed to fetch channels:', err)
+  } finally {
+    loadingChannels.value = false
   }
-  return options
-})
+}
 
-const selectedChannel = computed({
-  get: () => {
-    const current = uploadStore.selectedChannel
-    const name = uploadStore.selectedChannelName
-    if (name) {
-      return `${current}::${name}`
+function triggerFileInput() {
+  fileInput.value?.click()
+}
+
+function handleFileSelect(e) {
+  addFiles(e.target.files)
+  e.target.value = ''
+}
+
+function handleDrop(e) {
+  isDragOver.value = false
+  addFiles(e.dataTransfer.files)
+}
+
+function handleDragOver() {
+  isDragOver.value = true
+}
+
+function handleDragLeave() {
+  isDragOver.value = false
+}
+
+function handlePaste(e) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  
+  const fileItems = Array.from(items).filter(item => item.kind === 'file')
+  if (fileItems.length > 0) {
+    e.preventDefault()
+    const files = fileItems.map(item => item.getAsFile()).filter(Boolean)
+    addFiles(files)
+  }
+}
+
+async function addFiles(fileList) {
+  for (const file of fileList) {
+    const fileType = getFileType(file.type, file.name)
+    const fileObj = {
+      id: generateId(),
+      file,
+      name: file.name,
+      size: file.size,
+      sizeText: formatFileSize(file.size),
+      type: fileType,
+      icon: getFileIcon(fileType),
+      color: getFileColor(fileType),
+      status: 'pending',
+      progress: 0,
+      url: null,
+      compressed: false
     }
-    return current
-  },
-  set: (val) => {
-    if (val && val.includes('::')) {
-      const [type, name] = val.split('::')
-      uploadStore.selectedChannel = type
-      uploadStore.selectedChannelName = name
+    
+    // 压缩图片
+    if (fileType === 'image' && file.type !== 'image/svg+xml' && file.type !== 'image/gif') {
+      try {
+        const compressed = await compressImage(file, 0.8)
+        if (compressed.size < file.size) {
+          fileObj.file = compressed
+          fileObj.size = compressed.size
+          fileObj.sizeText = formatFileSize(compressed.size)
+          fileObj.compressed = true
+        }
+      } catch (e) {
+        console.warn('Compression failed:', e)
+      }
+    }
+    
+    files.value.push(fileObj)
+  }
+}
+
+function removeFile(id) {
+  files.value = files.value.filter(f => f.id !== id)
+}
+
+function clearFiles() {
+  files.value = []
+}
+
+async function uploadAll() {
+  if (uploading.value || !selectedChannel.value) return
+  
+  uploading.value = true
+  const pendingFiles = files.value.filter(f => f.status === 'pending')
+  
+  for (const file of pendingFiles) {
+    await uploadFile(file)
+  }
+  
+  uploading.value = false
+  
+  // 显示第一个成功文件的链接
+  const successFile = files.value.find(f => f.status === 'success')
+  if (successFile) {
+    showLink(successFile)
+  }
+}
+
+async function uploadFile(fileObj) {
+  fileObj.status = 'uploading'
+  fileObj.progress = 0
+  
+  try {
+    const params = {
+      uploadChannel: selectedChannel.value.type
+    }
+    if (selectedChannel.value.name) {
+      params.channelName = selectedChannel.value.name
+    }
+    if (uploadFolder.value) {
+      params.uploadFolder = uploadFolder.value
+    }
+    
+    // 模拟进度
+    const progressInterval = setInterval(() => {
+      if (fileObj.progress < 90) {
+        fileObj.progress += Math.random() * 10
+      }
+    }, 200)
+    
+    const result = await api.upload(fileObj.file, params)
+    
+    clearInterval(progressInterval)
+    fileObj.progress = 100
+    
+    if (result && result[0]?.src) {
+      fileObj.status = 'success'
+      fileObj.url = result[0].src
     } else {
-      uploadStore.selectedChannel = val
-      uploadStore.selectedChannelName = ''
+      throw new Error('Invalid response')
     }
-  }
-})
-
-const uploadFolder = computed({
-  get: () => uploadStore.uploadFolder,
-  set: (val) => { uploadStore.uploadFolder = val }
-})
-
-onMounted(async () => {
-  await uploadStore.fetchChannels()
-  loadingChannels.value = false
-  
-  // 自动选择第一个可用渠道
-  if (channelOptions.value.length > 0 && !selectedChannel.value) {
-    selectedChannel.value = channelOptions.value[0].value
-  }
-})
-
-const triggerFileInput = () => {
-  if (hasChannels.value) {
-    fileInput.value.click()
+  } catch (err) {
+    fileObj.status = 'error'
+    toast.value?.error(`上传失败: ${err.message}`)
   }
 }
 
-const handleDrop = (event) => {
-  event.preventDefault()
-  dragover.value = false
-  if (hasChannels.value) {
-    const droppedFiles = event.dataTransfer.files
-    if (droppedFiles.length > 0) {
-      uploadStore.addFiles(droppedFiles)
-    }
+async function retryUpload(fileObj) {
+  fileObj.status = 'pending'
+  fileObj.progress = 0
+  await uploadFile(fileObj)
+}
+
+function showLink(fileObj) {
+  linkFile.value = {
+    url: window.location.origin + fileObj.url,
+    name: fileObj.name
   }
+  linkDialog.value?.show()
 }
 
-const handleDragover = (event) => {
-  event.preventDefault()
-  dragover.value = true
+function refresh() {
+  fetchChannels()
 }
 
-const handleDragleave = () => {
-  dragover.value = false
-}
-
-const handleFileSelect = (event) => {
-  const selectedFiles = event.target.files
-  if (selectedFiles.length > 0) {
-    uploadStore.addFiles(selectedFiles)
-  }
-  event.target.value = ''
-}
-
-const removeFile = (fileId) => {
-  uploadStore.removeFile(fileId)
-}
-
-const clearFiles = () => {
-  uploadStore.clearFiles()
-}
-
-const uploadAll = async () => {
-  await uploadStore.uploadAll()
-  
-  // 上传完成后，自动弹出第一个成功文件的链接弹窗
-  const completedFile = files.value.find(f => f.status === 'completed' && f.url)
-  if (completedFile) {
-    showLinkDialog(completedFile)
-  }
-  
-  showMessage(t('upload.uploadComplete'), 'success')
-}
-
-const retryUpload = async (file) => {
-  file.status = 'pending'
-  file.error = null
-  file.progress = 0
-  await uploadStore.uploadFile(file)
-}
-
-const showLinkDialog = (file) => {
-  linkDialogFile.value = file
-  showLinkFormatDialog.value = true
-}
-
-const showHistoryLinkDialog = (item) => {
-  // 将历史记录项转换为链接弹窗可用的格式
-  linkDialogFile.value = {
-    name: item.name,
-    url: item.url
-  }
-  showLinkFormatDialog.value = true
-}
-
-// 链接格式生成
-const getDirectLink = (file) => {
-  const fileId = file.url || file.name
-  return `${window.location.origin}${fileId}`
-}
-
-const getMarkdownLink = (file) => {
-  return `![${file.name}](${getDirectLink(file)})`
-}
-
-const getHtmlLink = (file) => {
-  return `<img src="${getDirectLink(file)}" alt="${file.name}" />`
-}
-
-const getBBCodeLink = (file) => {
-  return `[img]${getDirectLink(file)}[/img]`
-}
-
-const copyText = async (text) => {
-  const success = await copyToClipboard(text)
-  if (success) {
-    showMessage(t('common.copied'), 'success')
-  }
-}
-
-const copyHistoryLink = async (item) => {
-  const url = `${window.location.origin}${item.url}`
-  await copyText(url)
-}
-
-const clearHistory = () => {
-  uploadStore.clearHistory()
-}
-
-const showMessage = (text, color = 'success') => {
-  snackbarText.value = text
-  snackbarColor.value = color
-  snackbar.value = true
-}
-
-const getFileIcon = (status) => {
-  switch (status) {
-    case 'completed': return 'mdi-check-circle'
-    case 'error': return 'mdi-alert-circle'
-    case 'uploading': return 'mdi-loading'
-    default: return 'mdi-file'
-  }
-}
-
-const getFileColor = (status) => {
-  switch (status) {
-    case 'completed': return 'success'
-    case 'error': return 'error'
-    case 'uploading': return 'primary'
-    default: return 'grey'
-  }
-}
+defineExpose({ refresh })
 </script>
 
 <style scoped>
 .upload-page {
-  max-width: 1200px;
+  min-height: calc(100vh - 80px);
+  padding: var(--space-xl) 0;
 }
 
 .upload-zone {
-  border: 2px dashed rgb(var(--v-theme-outline));
+  text-align: center;
+  padding: var(--space-2xl);
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: rgb(var(--v-theme-surface));
+  transition: var(--transition-normal);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
 }
 
-.upload-zone:hover:not(.upload-zone--active) {
-  border-color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.04);
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.02);
 }
 
-.upload-zone--active {
-  border-color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.08);
-  transform: scale(1.01);
+.upload-icon {
+  margin-bottom: var(--space-lg);
+}
+
+.upload-icon .material-icons-outlined {
+  font-size: 64px;
+  opacity: 0.8;
+}
+
+.upload-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.upload-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+.upload-hint {
+  margin-top: var(--space-md);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.upload-settings {
+  display: flex;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  margin-top: var(--space-lg);
+}
+
+.setting-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.setting-label .material-icons-outlined {
+  font-size: 16px;
+}
+
+.no-channels {
+  text-align: center;
+  padding: var(--space-2xl);
+  margin-top: var(--space-lg);
+}
+
+.no-channels .material-icons-outlined {
+  font-size: 48px;
+  color: var(--warning);
+  margin-bottom: var(--space-md);
+}
+
+.no-channels p {
+  margin-bottom: var(--space-lg);
+  color: var(--text-secondary);
+}
+
+.file-list {
+  margin-top: var(--space-xl);
+}
+
+.file-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.file-list-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.file-list-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.file-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  animation: fadeInUp 0.3s ease;
+}
+
+.file-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.file-icon .material-icons-outlined {
+  font-size: 24px;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.file-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--success);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 32px;
+}
+
+.file-status .material-icons-outlined {
+  font-size: 24px;
+}
+
+.text-muted { color: var(--text-muted); }
+.text-primary { color: var(--info); }
+.text-success { color: var(--success); }
+.text-error { color: var(--error); }
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+.file-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+@media (max-width: 640px) {
+  .upload-settings {
+    flex-direction: column;
+  }
+  
+  .file-list-header {
+    flex-direction: column;
+    gap: var(--space-md);
+    align-items: flex-start;
+  }
+  
+  .file-item {
+    flex-wrap: wrap;
+  }
+  
+  .file-info {
+    width: calc(100% - 56px);
+  }
 }
 </style>

@@ -1,103 +1,205 @@
 <template>
-  <AuthLayout>
-    <v-card class="pa-4 pa-md-8">
-      <v-card-item class="text-center mb-4">
-        <v-avatar size="64" color="primary" rounded="xl" class="mb-4">
-          <v-icon size="36" color="white">mdi-cloud-upload</v-icon>
-        </v-avatar>
-        <v-card-title class="text-h4 font-weight-bold">PicBase</v-card-title>
-        <v-card-subtitle>{{ t('auth.enterAuthCode') }}</v-card-subtitle>
-      </v-card-item>
-
-      <v-card-text>
-        <v-form @submit.prevent="handleLogin" ref="formRef">
-          <v-text-field
-            v-model="authCode"
-            :label="t('auth.authCode')"
-            :type="showPassword ? 'text' : 'password'"
-            :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-            @click:append-inner="showPassword = !showPassword"
-            :rules="rules"
-            :disabled="loading"
-            autofocus
-            class="mb-4"
-          />
-
-          <v-alert
-            v-if="error"
-            type="error"
-            variant="tonal"
-            closable
-            class="mb-4"
-            @click:close="error = ''"
-          >
+  <div class="login-page">
+    <div class="login-container">
+      <div class="login-card glass-strong">
+        <div class="login-header">
+          <img src="/logo.svg" alt="Logo" class="login-logo" />
+          <h1 class="login-title">PicBase</h1>
+          <p class="login-subtitle">管理员登录</p>
+        </div>
+        
+        <form class="login-form" @submit.prevent="handleLogin">
+          <div class="form-group">
+            <label class="form-label">
+              <span class="material-icons-outlined">person</span>
+              用户名
+            </label>
+            <input
+              class="input"
+              v-model="username"
+              type="text"
+              placeholder="请输入用户名"
+              autocomplete="username"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              <span class="material-icons-outlined">lock</span>
+              密码
+            </label>
+            <input
+              class="input"
+              v-model="password"
+              type="password"
+              placeholder="请输入密码"
+              autocomplete="current-password"
+            />
+          </div>
+          
+          <div class="form-error" v-if="error">
+            <span class="material-icons-outlined">error</span>
             {{ error }}
-          </v-alert>
-
-          <v-btn
-            type="submit"
-            block
-            size="large"
-            color="primary"
-            :loading="loading"
-            class="mb-4"
-          >
-            {{ t('auth.login') }}
-          </v-btn>
-        </v-form>
-      </v-card-text>
-
-      <v-card-actions class="justify-center">
-        <v-btn
-          variant="text"
-          size="small"
-          to="/admin/login"
-        >
-          {{ t('auth.adminLogin') }}
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </AuthLayout>
+          </div>
+          
+          <button class="btn btn-primary btn-lg w-full" type="submit" :disabled="loading">
+            <span v-if="loading" class="material-icons-outlined spinning">sync</span>
+            <span v-else class="material-icons-outlined">login</span>
+            {{ loading ? '登录中...' : '登录' }}
+          </button>
+        </form>
+        
+        <div class="login-footer">
+          <router-link to="/" class="btn btn-secondary">
+            <span class="material-icons-outlined">arrow_back</span>
+            返回首页
+          </router-link>
+        </div>
+      </div>
+    </div>
+    
+    <Toast ref="toast" />
+  </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '@/stores/auth'
-import AuthLayout from '@/layouts/AuthLayout.vue'
+import { useRouter } from 'vue-router'
+import Toast from '@/components/Toast.vue'
 
 const router = useRouter()
-const route = useRoute()
-const { t } = useI18n()
-const authStore = useAuthStore()
+const toast = ref(null)
 
-const formRef = ref(null)
-const authCode = ref('')
-const showPassword = ref(false)
+const username = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
-const rules = [
-  v => !!v || t('auth.enterAuthCode')
-]
-
-const handleLogin = async () => {
-  const { valid } = await formRef.value.validate()
-  if (!valid) return
-
+async function handleLogin() {
+  if (!username.value || !password.value) {
+    error.value = '请输入用户名和密码'
+    return
+  }
+  
   loading.value = true
   error.value = ''
-
-  const result = await authStore.login(authCode.value)
   
-  if (result.success) {
-    const redirect = route.query.redirect || '/upload'
-    router.push(redirect)
-  } else {
-    error.value = result.message
+  try {
+    const res = await fetch('/api/auth/adminLogin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value
+      })
+    })
+    
+    const data = await res.json()
+    
+    if (res.ok && data.success) {
+      toast.value?.success('登录成功')
+      router.push('/admin')
+    } else {
+      error.value = data.error || '登录失败'
+    }
+  } catch (err) {
+    error.value = '网络错误，请重试'
+  } finally {
+    loading.value = false
   }
-
-  loading.value = false
 }
 </script>
+
+<style scoped>
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-card {
+  padding: var(--space-2xl);
+  animation: scaleIn 0.3s ease;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.login-logo {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-md);
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+}
+
+.login-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.form-label .material-icons-outlined {
+  font-size: 16px;
+}
+
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(231, 76, 60, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--error);
+  font-size: 13px;
+}
+
+.form-error .material-icons-outlined {
+  font-size: 18px;
+}
+
+.login-footer {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+.w-full {
+  width: 100%;
+}
+</style>

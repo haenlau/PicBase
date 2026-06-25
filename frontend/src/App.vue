@@ -1,34 +1,46 @@
 <template>
-  <v-app>
-    <router-view />
-  </v-app>
+  <div class="app">
+    <NavBar @refresh="handleRefresh" />
+    <main class="main-content">
+      <router-view v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" ref="pageRef" />
+        </Transition>
+      </router-view>
+    </main>
+  </div>
 </template>
 
 <script setup>
-import { watch, onMounted } from 'vue'
-import { useTheme } from 'vuetify'
-import { useAppStore } from '@/stores/app'
+import { ref } from 'vue'
+import NavBar from './components/NavBar.vue'
 
-const appStore = useAppStore()
-const theme = useTheme()
+const pageRef = ref(null)
 
-onMounted(() => {
-  appStore.initDarkMode()
-  // 初始化时同步主题
-  theme.global.name.value = appStore.darkMode ? 'dark' : 'light'
-})
-
-// 监听 darkMode 变化，同步到 Vuetify
-watch(() => appStore.darkMode, (isDark) => {
-  theme.global.name.value = isDark ? 'dark' : 'light'
-})
+function handleRefresh() {
+  if (pageRef.value?.refresh) {
+    pageRef.value.refresh()
+  } else {
+    window.location.reload()
+  }
+}
 </script>
 
 <style>
-html, body, #app {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
+.app {
+  min-height: 100vh;
+}
+
+.main-content {
+  padding-top: 80px;
+  min-height: 100vh;
+}
+
+.page-enter-active {
+  animation: fadeInUp 0.3s ease;
+}
+
+.page-leave-active {
+  animation: fadeInUp 0.3s ease reverse;
 }
 </style>
