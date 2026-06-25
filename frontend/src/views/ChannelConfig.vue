@@ -2,18 +2,9 @@
   <AdminLayout>
     <v-container fluid class="pa-4 pa-md-6">
       <v-card>
-        <v-card-title class="d-flex align-center justify-space-between">
-          <div>
-            <v-icon class="mr-2">mdi-server-network</v-icon>
-            {{ t('channels.title') }}
-          </div>
-          <v-btn
-            color="primary"
-            prepend-icon="mdi-plus"
-            @click="showAddDialog = true"
-          >
-            {{ t('channels.addChannel') }}
-          </v-btn>
+        <v-card-title class="d-flex align-center">
+          <v-icon class="mr-2">mdi-server-network</v-icon>
+          {{ t('channels.title') }}
         </v-card-title>
         <v-divider />
 

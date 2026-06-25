@@ -709,12 +709,20 @@ const batchCopyLinks = async () => {
 }
 
 const deleteFile = async (file) => {
+  if (!confirm(t('dashboard.deleteConfirm'))) return
+  
   try {
-    await manageApi.deleteFile(file.name)
+    // 编码文件名以处理特殊字符
+    const encodedName = encodeURIComponent(file.name)
+    await manageApi.deleteFile(encodedName)
     showMessage(t('dashboard.deleteSuccess'), 'success')
-    fetchFiles()
+    // 从列表中移除
+    files.value = files.value.filter(f => f.name !== file.name)
     selectedFiles.value = selectedFiles.value.filter(f => f.name !== file.name)
+    // 更新统计
+    stats.value.totalFiles = Math.max(0, stats.value.totalFiles - 1)
   } catch (error) {
+    console.error('Delete failed:', error)
     showMessage(t('dashboard.deleteFailed'), 'error')
   }
 }
@@ -722,15 +730,24 @@ const deleteFile = async (file) => {
 const batchDelete = async () => {
   if (selectedFiles.value.length === 0) return
   
-  try {
-    for (const file of selectedFiles.value) {
-      await manageApi.deleteFile(file.name)
+  if (!confirm(t('dashboard.batchDeleteConfirm', { count: selectedFiles.value.length }))) return
+  
+  let deletedCount = 0
+  for (const file of selectedFiles.value) {
+    try {
+      const encodedName = encodeURIComponent(file.name)
+      await manageApi.deleteFile(encodedName)
+      deletedCount++
+    } catch (error) {
+      console.error('Delete failed for:', file.name, error)
     }
+  }
+  
+  if (deletedCount > 0) {
     showMessage(t('dashboard.deleteSuccess'), 'success')
-    selectedFiles.value = []
+    // 刷新列表
     fetchFiles()
-  } catch (error) {
-    showMessage(t('dashboard.deleteFailed'), 'error')
+    selectedFiles.value = []
   }
 }
 

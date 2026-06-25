@@ -100,6 +100,7 @@
     "sizeAsc": "大小（小）",
     "sizeDesc": "大小（大）",
     "deleteConfirm": "确定要删除此文件吗？",
+    "batchDeleteConfirm": "确定要删除选中的 {count} 个文件吗？",
     "deleteSuccess": "文件删除成功",
     "deleteFailed": "文件删除失败",
     "renameSuccess": "文件重命名成功",

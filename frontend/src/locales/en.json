@@ -100,6 +100,7 @@
     "sizeAsc": "Size (Small)",
     "sizeDesc": "Size (Large)",
     "deleteConfirm": "Are you sure you want to delete this file?",
+    "batchDeleteConfirm": "Are you sure you want to delete {count} selected files?",
     "deleteSuccess": "File deleted successfully",
     "deleteFailed": "Failed to delete file",
     "renameSuccess": "File renamed successfully",
