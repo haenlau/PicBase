@@ -73,7 +73,7 @@
           <!-- File List -->
           <v-card v-if="files.length > 0" class="mb-6">
             <v-card-title class="d-flex align-center justify-space-between">
-              <span>{{ t('common.selected') }}</span>
+              <span>{{ t('common.selected', { count: files.length }) }}</span>
               <div>
                 <v-btn
                   color="primary"
@@ -81,9 +81,10 @@
                   size="small"
                   class="mr-2"
                   :loading="uploading"
+                  :disabled="pendingFiles === 0"
                   @click="uploadAll"
                 >
-                  {{ t('upload.uploadAll') }}
+                  {{ t('upload.uploadAll') }} ({{ pendingFiles }})
                 </v-btn>
                 <v-btn
                   color="error"
@@ -136,9 +137,19 @@
                       color="error"
                       size="small"
                       variant="tonal"
+                      @click:close="removeFile(file.id)"
                     >
                       {{ t('upload.uploadFailed') }}
                     </v-chip>
+                    <v-btn
+                      v-if="file.status === 'completed' && file.url"
+                      icon
+                      size="small"
+                      variant="text"
+                      @click="copyLink(file)"
+                    >
+                      <v-icon>mdi-content-copy</v-icon>
+                    </v-btn>
                     <v-btn
                       icon
                       size="small"
@@ -148,33 +159,6 @@
                       <v-icon>mdi-close</v-icon>
                     </v-btn>
                   </div>
-                </template>
-              </v-list-item>
-            </v-list>
-          </v-card>
-
-          <!-- Upload Results -->
-          <v-card v-if="completedFiles > 0" class="mb-6">
-            <v-card-title>{{ t('upload.uploadComplete') }}</v-card-title>
-            <v-list>
-              <v-list-item
-                v-for="file in completedFileList"
-                :key="file.id"
-              >
-                <template #prepend>
-                  <v-icon color="success">mdi-check-circle</v-icon>
-                </template>
-                <v-list-item-title>{{ file.name }}</v-list-item-title>
-                <v-list-item-subtitle>{{ file.url }}</v-list-item-subtitle>
-                <template #append>
-                  <v-btn
-                    icon
-                    size="small"
-                    variant="text"
-                    @click="copyLink(file.url)"
-                  >
-                    <v-icon>mdi-content-copy</v-icon>
-                  </v-btn>
                 </template>
               </v-list-item>
             </v-list>
@@ -207,7 +191,7 @@
                     icon
                     size="small"
                     variant="text"
-                    @click="copyLink(item.url)"
+                    @click="copyHistoryLink(item)"
                   >
                     <v-icon>mdi-content-copy</v-icon>
                   </v-btn>
@@ -244,8 +228,8 @@ const snackbarColor = ref('success')
 
 const files = computed(() => uploadStore.files)
 const uploading = computed(() => uploadStore.uploading)
-const completedFiles = computed(() => uploadStore.completedFiles)
 const uploadHistory = computed(() => uploadStore.uploadHistory)
+const pendingFiles = computed(() => uploadStore.files.filter(f => f.status === 'pending').length)
 
 const selectedChannel = computed({
   get: () => uploadStore.selectedChannel,
@@ -261,7 +245,7 @@ const channelOptions = computed(() => {
   const channels = uploadStore.channels
   const options = []
   for (const [type, data] of Object.entries(channels)) {
-    if (data && data.length > 0) {
+    if (data && Array.isArray(data) && data.length > 0) {
       data.forEach(ch => {
         options.push({
           title: ch.name || type,
@@ -270,11 +254,10 @@ const channelOptions = computed(() => {
       })
     }
   }
+  if (options.length === 0) {
+    options.push({ title: 'Telegram', value: 'telegram' })
+  }
   return options
-})
-
-const completedFileList = computed(() => {
-  return files.value.filter(f => f.status === 'completed')
 })
 
 onMounted(() => {
@@ -324,8 +307,16 @@ const uploadAll = async () => {
   showMessage(t('upload.uploadComplete'), 'success')
 }
 
-const copyLink = async (url) => {
-  const fullUrl = `${window.location.origin}${url}`
+const copyLink = async (file) => {
+  const fullUrl = `${window.location.origin}${file.url}`
+  const success = await copyToClipboard(fullUrl)
+  if (success) {
+    showMessage(t('common.copied'), 'success')
+  }
+}
+
+const copyHistoryLink = async (item) => {
+  const fullUrl = `${window.location.origin}${item.url}`
   const success = await copyToClipboard(fullUrl)
   if (success) {
     showMessage(t('common.copied'), 'success')

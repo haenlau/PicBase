@@ -14,7 +14,8 @@
                 prepend-inner-icon="mdi-magnify"
                 clearable
                 hide-details
-                @update:model-value="debouncedSearch"
+                @click:clear="clearSearch"
+                @keyup.enter="fetchImages"
               />
             </v-card-text>
           </v-card>
@@ -38,14 +39,14 @@
           <v-row v-else>
             <v-col
               v-for="image in images"
-              :key="image.id"
+              :key="imageKey(image)"
               cols="6"
               sm="4"
               md="3"
             >
               <v-card class="image-card" @click="openPreview(image)">
                 <v-img
-                  :src="image.url"
+                  :src="getImageUrl(image)"
                   height="200"
                   cover
                 >
@@ -88,7 +89,7 @@
         <v-divider />
         <v-card-text class="pa-0">
           <v-img
-            :src="previewImage.url"
+            :src="getImageUrl(previewImage)"
             max-height="70vh"
             contain
           />
@@ -99,7 +100,7 @@
             <v-icon start>mdi-content-copy</v-icon>
             {{ t('dashboard.copyLink') }}
           </v-btn>
-          <v-btn :href="previewImage.url" target="_blank">
+          <v-btn :href="getImageUrl(previewImage)" target="_blank">
             <v-icon start>mdi-download</v-icon>
             {{ t('common.download') }}
           </v-btn>
@@ -118,7 +119,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { publicApi } from '@/api'
-import { copyToClipboard, debounce } from '@/utils/helpers'
+import { copyToClipboard } from '@/utils/helpers'
 import UserLayout from '@/layouts/UserLayout.vue'
 
 const { t } = useI18n()
@@ -171,14 +172,23 @@ const fetchImages = async (reset = true) => {
   }
 }
 
+const clearSearch = () => {
+  search.value = ''
+  fetchImages()
+}
+
 const loadMore = () => {
   page.value++
   fetchImages(false)
 }
 
-const debouncedSearch = debounce(() => {
-  fetchImages()
-}, 300)
+const imageKey = (image) => {
+  return image.id || image.name || Math.random().toString()
+}
+
+const getImageUrl = (image) => {
+  return image.url || `/file/${image.id}`
+}
 
 const openPreview = (image) => {
   previewImage.value = image
@@ -186,7 +196,7 @@ const openPreview = (image) => {
 }
 
 const copyLink = async (image) => {
-  const url = `${window.location.origin}${image.url}`
+  const url = `${window.location.origin}${getImageUrl(image)}`
   const success = await copyToClipboard(url)
   if (success) {
     showMessage(t('dashboard.linkCopied'), 'success')

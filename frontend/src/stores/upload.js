@@ -69,8 +69,11 @@ export const useUploadStore = defineStore('upload', () => {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
+        timeout: 0,
         onUploadProgress: (progressEvent) => {
-          fileObj.progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          if (progressEvent.total) {
+            fileObj.progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          }
         }
       })
 

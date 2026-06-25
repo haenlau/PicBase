@@ -68,6 +68,7 @@
               clearable
               density="compact"
               hide-details
+              @click:clear="clearSearch"
             />
           </v-col>
           <v-col cols="12" md="8">
@@ -80,14 +81,6 @@
                 hide-details
                 style="min-width: 150px"
               />
-              <v-select
-                v-model="filterType"
-                :items="typeFilterOptions"
-                :label="t('common.type')"
-                density="compact"
-                hide-details
-                style="min-width: 120px"
-              />
               <v-btn-toggle v-model="viewMode" mandatory density="compact">
                 <v-btn value="grid" icon>
                   <v-icon>mdi-view-grid</v-icon>
@@ -96,6 +89,14 @@
                   <v-icon>mdi-view-list</v-icon>
                 </v-btn>
               </v-btn-toggle>
+              <v-btn
+                icon
+                variant="text"
+                @click="fetchFiles"
+                :loading="loading"
+              >
+                <v-icon>mdi-refresh</v-icon>
+              </v-btn>
             </div>
           </v-col>
         </v-row>
@@ -106,7 +107,7 @@
     <v-slide-y-transition>
       <v-card v-if="selectedFiles.length > 0" class="mb-4" color="primary" variant="tonal">
         <v-card-text class="d-flex align-center justify-space-between">
-          <span>{{ t('common.selected') }}</span>
+          <span>{{ t('common.selected', { count: selectedFiles.length }) }}</span>
           <div>
             <v-btn
               variant="text"
@@ -120,19 +121,10 @@
             <v-btn
               variant="text"
               size="small"
-              class="mr-2"
-              @click="showMoveDialog = true"
+              @click="clearSelection"
             >
-              <v-icon start>mdi-folder-move</v-icon>
-              {{ t('dashboard.batchMove') }}
-            </v-btn>
-            <v-btn
-              variant="text"
-              size="small"
-              @click="showTagDialog = true"
-            >
-              <v-icon start>mdi-tag</v-icon>
-              {{ t('dashboard.batchTag') }}
+              <v-icon start>mdi-close</v-icon>
+              {{ t('common.cancel') }}
             </v-btn>
           </div>
         </v-card-text>
@@ -158,7 +150,7 @@
         <v-row v-else>
           <v-col
             v-for="file in files"
-            :key="file.id"
+            :key="fileKey(file)"
             cols="6"
             sm="4"
             md="3"
@@ -186,7 +178,7 @@
                 <div v-else class="d-flex align-center justify-center" style="height: 120px">
                   <v-icon size="48" color="grey">{{ getFileTypeIcon(file) }}</v-icon>
                 </div>
-                <v-checkbox
+                <v-checkbox-btn
                   :model-value="isSelected(file)"
                   @click.stop
                   @update:model-value="toggleSelect(file)"
@@ -239,7 +231,7 @@
           </tr>
           <tr
             v-for="file in files"
-            :key="file.id"
+            :key="fileKey(file)"
             :class="{ 'bg-primary-lighten-4': isSelected(file) }"
             @click="toggleSelect(file)"
             style="cursor: pointer"
@@ -388,7 +380,6 @@ const files = ref([])
 const selectedFiles = ref([])
 const search = ref('')
 const filterChannel = ref('all')
-const filterType = ref('all')
 const viewMode = ref(localStorage.getItem('viewMode') || 'grid')
 const page = ref(1)
 const pageSize = ref(24)
@@ -416,26 +407,21 @@ const channelFilterOptions = computed(() => [
   { title: 'WebDAV', value: 'WebDAV' }
 ])
 
-const typeFilterOptions = computed(() => [
-  { title: t('common.all'), value: 'all' },
-  { title: 'Image', value: 'image' },
-  { title: 'Video', value: 'video' },
-  { title: 'Audio', value: 'audio' },
-  { title: 'PDF', value: 'pdf' },
-  { title: 'Other', value: 'other' }
-])
-
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
 
 const allSelected = computed(() => {
   return files.value.length > 0 && selectedFiles.value.length === files.value.length
 })
 
+const fileKey = (file) => {
+  return file.id || file.name || Math.random().toString()
+}
+
 watch(viewMode, (val) => {
   localStorage.setItem('viewMode', val)
 })
 
-watch([search, filterChannel, filterType], () => {
+watch([filterChannel], () => {
   page.value = 1
   fetchFiles()
 })
@@ -446,7 +432,6 @@ watch(page, () => {
 
 onMounted(() => {
   fetchFiles()
-  fetchStats()
 })
 
 const fetchFiles = async () => {
@@ -458,11 +443,15 @@ const fetchFiles = async () => {
     }
     if (search.value) params.search = search.value
     if (filterChannel.value !== 'all') params.channel = filterChannel.value
-    if (filterType.value !== 'all') params.fileType = filterType.value
 
     const response = await manageApi.getFiles(params)
     files.value = response.data.files || []
     totalCount.value = response.data.totalCount || 0
+    
+    // Update stats
+    if (response.data.totalCount !== undefined) {
+      stats.value.totalFiles = response.data.totalCount
+    }
   } catch (error) {
     console.error('Failed to fetch files:', error)
     showMessage(t('common.error'), 'error')
@@ -471,13 +460,10 @@ const fetchFiles = async () => {
   }
 }
 
-const fetchStats = async () => {
-  try {
-    const response = await manageApi.getFiles({ count: -1, sum: true })
-    stats.value.totalFiles = response.data.sum || 0
-  } catch (error) {
-    console.error('Failed to fetch stats:', error)
-  }
+const clearSearch = () => {
+  search.value = ''
+  page.value = 1
+  fetchFiles()
 }
 
 const isImage = (file) => {
@@ -498,11 +484,13 @@ const getFileTypeIcon = (file) => {
 }
 
 const isSelected = (file) => {
-  return selectedFiles.value.some(f => f.id === file.id)
+  const key = file.id || file.name
+  return selectedFiles.value.some(f => (f.id || f.name) === key)
 }
 
 const toggleSelect = (file) => {
-  const index = selectedFiles.value.findIndex(f => f.id === file.id)
+  const key = file.id || file.name
+  const index = selectedFiles.value.findIndex(f => (f.id || f.name) === key)
   if (index >= 0) {
     selectedFiles.value.splice(index, 1)
   } else {
@@ -516,6 +504,10 @@ const toggleSelectAll = () => {
   } else {
     selectedFiles.value = [...files.value]
   }
+}
+
+const clearSelection = () => {
+  selectedFiles.value = []
 }
 
 const openDetail = (file) => {
@@ -533,18 +525,28 @@ const copyLink = async (file) => {
 
 const deleteFile = async (file) => {
   try {
-    await manageApi.deleteFile(file.id)
+    await manageApi.deleteFile(file.id || file.name)
     showMessage(t('dashboard.deleteSuccess'), 'success')
     fetchFiles()
-    selectedFiles.value = selectedFiles.value.filter(f => f.id !== file.id)
+    selectedFiles.value = selectedFiles.value.filter(f => (f.id || f.name) !== (file.id || file.name))
   } catch (error) {
     showMessage(t('dashboard.deleteFailed'), 'error')
   }
 }
 
 const batchDelete = async () => {
-  // Implement batch delete
-  showMessage('Batch delete not implemented yet', 'warning')
+  if (selectedFiles.value.length === 0) return
+  
+  try {
+    for (const file of selectedFiles.value) {
+      await manageApi.deleteFile(file.id || file.name)
+    }
+    showMessage(t('dashboard.deleteSuccess'), 'success')
+    selectedFiles.value = []
+    fetchFiles()
+  } catch (error) {
+    showMessage(t('dashboard.deleteFailed'), 'error')
+  }
 }
 
 const showMessage = (text, color = 'success') => {

@@ -8,10 +8,6 @@
           <v-icon start>mdi-cog</v-icon>
           {{ t('settings.general') }}
         </v-tab>
-        <v-tab value="upload">
-          <v-icon start>mdi-cloud-upload</v-icon>
-          {{ t('settings.upload') }}
-        </v-tab>
         <v-tab value="security">
           <v-icon start>mdi-shield</v-icon>
           {{ t('settings.security') }}
@@ -28,40 +24,18 @@
         <v-window v-model="tab">
           <!-- General Settings -->
           <v-window-item value="general">
-            <v-form @submit.prevent="saveGeneral">
-              <v-list>
-                <v-list-item>
-                  <v-list-item-title>{{ t('settings.language') }}</v-list-item-title>
-                  <template #append>
-                    <v-select
-                      v-model="generalSettings.language"
-                      :items="languageOptions"
-                      density="compact"
-                      hide-details
-                      style="width: 150px"
-                    />
-                  </template>
-                </v-list-item>
-              </v-list>
-              <v-btn type="submit" color="primary" class="mt-4">
-                {{ t('common.save') }}
-              </v-btn>
-            </v-form>
-          </v-window-item>
-
-          <!-- Upload Settings -->
-          <v-window-item value="upload">
             <v-list>
-              <v-list-item
-                v-for="(channels, type) in uploadConfig"
-                :key="type"
-                :title="type"
-                :subtitle="`${channels.length} channel(s)`"
-              >
+              <v-list-item>
+                <v-list-item-title>{{ t('settings.language') }}</v-list-item-title>
                 <template #append>
-                  <v-btn variant="tonal" size="small" @click="editChannel(type)">
-                    {{ t('common.edit') }}
-                  </v-btn>
+                  <v-select
+                    v-model="currentLocale"
+                    :items="languageOptions"
+                    density="compact"
+                    hide-details
+                    style="width: 150px"
+                    @update:model-value="changeLocale"
+                  />
                 </template>
               </v-list-item>
             </v-list>
@@ -73,6 +47,7 @@
               <v-list>
                 <v-list-item>
                   <v-list-item-title>{{ t('auth.authCode') }}</v-list-item-title>
+                  <v-list-item-subtitle>User access code for upload</v-list-item-subtitle>
                   <template #append>
                     <v-text-field
                       v-model="securitySettings.authCode"
@@ -80,22 +55,28 @@
                       density="compact"
                       hide-details
                       style="width: 200px"
+                      placeholder="Leave empty to disable"
                     />
                   </template>
                 </v-list-item>
+                <v-divider />
                 <v-list-item>
                   <v-list-item-title>{{ t('auth.username') }}</v-list-item-title>
+                  <v-list-item-subtitle>Admin username</v-list-item-subtitle>
                   <template #append>
                     <v-text-field
                       v-model="securitySettings.adminUsername"
                       density="compact"
                       hide-details
                       style="width: 200px"
+                      placeholder="Leave empty to disable"
                     />
                   </template>
                 </v-list-item>
+                <v-divider />
                 <v-list-item>
                   <v-list-item-title>{{ t('auth.password') }}</v-list-item-title>
+                  <v-list-item-subtitle>Admin password</v-list-item-subtitle>
                   <template #append>
                     <v-text-field
                       v-model="securitySettings.adminPassword"
@@ -103,11 +84,12 @@
                       density="compact"
                       hide-details
                       style="width: 200px"
+                      placeholder="Leave empty to keep current"
                     />
                   </template>
                 </v-list-item>
               </v-list>
-              <v-btn type="submit" color="primary" class="mt-4">
+              <v-btn type="submit" color="primary" class="mt-4" :loading="saving">
                 {{ t('common.save') }}
               </v-btn>
             </v-form>
@@ -153,6 +135,9 @@ const tab = ref('general')
 const snackbar = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref('success')
+const saving = ref(false)
+
+const currentLocale = ref(locale.value)
 
 const darkMode = computed({
   get: () => appStore.darkMode,
@@ -164,48 +149,37 @@ const languageOptions = [
   { title: '中文', value: 'zh-CN' }
 ]
 
-const generalSettings = ref({
-  language: locale.value
-})
-
 const securitySettings = ref({
   authCode: '',
   adminUsername: '',
   adminPassword: ''
 })
 
-const uploadConfig = ref({})
-
 onMounted(() => {
-  fetchConfigs()
+  fetchSecurityConfig()
 })
 
-const fetchConfigs = async () => {
+const fetchSecurityConfig = async () => {
   try {
-    const [securityRes, uploadRes] = await Promise.all([
-      configApi.getSecurityConfig(),
-      configApi.getUploadConfig()
-    ])
-    
+    const response = await configApi.getSecurityConfig()
+    const data = response.data
     securitySettings.value = {
-      authCode: securityRes.data.auth?.user?.authCode || '',
-      adminUsername: securityRes.data.auth?.admin?.adminUsername || '',
+      authCode: '',
+      adminUsername: data.auth?.admin?.adminUsername || '',
       adminPassword: ''
     }
-    
-    uploadConfig.value = uploadRes.data || {}
   } catch (error) {
-    console.error('Failed to fetch configs:', error)
+    console.error('Failed to fetch security config:', error)
   }
 }
 
-const saveGeneral = async () => {
-  appStore.setLocale(generalSettings.value.language)
-  locale.value = generalSettings.value.language
-  showMessage(t('settings.saveSuccess'), 'success')
+const changeLocale = (newLocale) => {
+  appStore.setLocale(newLocale)
+  locale.value = newLocale
 }
 
 const saveSecurity = async () => {
+  saving.value = true
   try {
     await configApi.updateSecurityConfig({
       auth: {
@@ -219,16 +193,13 @@ const saveSecurity = async () => {
     showMessage(t('settings.saveSuccess'), 'success')
   } catch (error) {
     showMessage(t('settings.saveFailed'), 'error')
+  } finally {
+    saving.value = false
   }
 }
 
 const toggleDarkMode = () => {
   appStore.toggleDarkMode()
-}
-
-const editChannel = (type) => {
-  // TODO: Implement channel editing dialog
-  showMessage('Channel editing not implemented yet', 'warning')
 }
 
 const showMessage = (text, color = 'success') => {

@@ -80,20 +80,26 @@ router.beforeEach(async (to, from, next) => {
     await authStore.checkSession()
   }
 
-  const requiresAuth = to.meta.requiresAuth !== false
+  const requiresAuth = to.meta.requiresAuth === true
   const requiresAdmin = to.meta.requiresAdmin === true
 
+  // If route requires auth and user is not authenticated
   if (requiresAuth && !authStore.isAuthenticated) {
     if (requiresAdmin) {
       next({ name: 'AdminLogin', query: { redirect: to.fullPath } })
     } else {
       next({ name: 'Login', query: { redirect: to.fullPath } })
     }
-  } else if (requiresAdmin && !authStore.isAdmin) {
-    next({ name: 'AdminLogin', query: { redirect: to.fullPath } })
-  } else {
-    next()
+    return
   }
+
+  // If route requires admin and user is not admin
+  if (requiresAdmin && !authStore.isAdmin) {
+    next({ name: 'AdminLogin', query: { redirect: to.fullPath } })
+    return
+  }
+
+  next()
 })
 
 export default router
