@@ -1,7 +1,13 @@
 <template>
-  <v-container>
+  <v-container fluid class="pa-4 pa-md-6">
     <v-row justify="center">
-      <v-col cols="12" md="10" lg="8">
+      <v-col cols="12" lg="10" xl="8">
+        <!-- 页面标题 -->
+        <div class="mb-6">
+          <h1 class="text-h4 font-weight-bold">上传文件</h1>
+          <p class="text-body-1 text-medium-emphasis mt-1">支持拖拽、点击、粘贴上传</p>
+        </div>
+
         <!-- 上传区域 -->
         <v-card
           class="upload-zone mb-6"
@@ -11,12 +17,12 @@
           @dragleave="isDragOver = false"
           @click="triggerFileInput"
         >
-          <v-card-text class="text-center pa-12">
-            <v-icon size="80" color="primary" class="mb-4">
-              mdi-cloud-upload-outline
-            </v-icon>
-            <h2 class="text-h4 font-weight-bold mb-2">拖拽文件到此处上传</h2>
-            <p class="text-body-1 text-medium-emphasis mb-6">或点击选择文件</p>
+          <v-card-text class="text-center pa-8 pa-md-12">
+            <v-avatar size="80" rounded="xl" color="primary" variant="tonal" class="mb-4">
+              <v-icon size="40">mdi-cloud-upload-outline</v-icon>
+            </v-avatar>
+            <h2 class="text-h5 font-weight-bold mb-2">拖拽文件到此处</h2>
+            <p class="text-body-2 text-medium-emphasis mb-4">或点击选择文件</p>
             <v-btn
               color="primary"
               size="large"
@@ -25,9 +31,16 @@
               <v-icon start>mdi-folder-open</v-icon>
               选择文件
             </v-btn>
-            <p class="text-caption text-medium-emphasis mt-4">
-              支持 Ctrl+V 粘贴上传
-            </p>
+            <div class="mt-4">
+              <v-chip size="small" variant="tonal" class="mr-2">
+                <v-icon start size="small">mdi-keyboard</v-icon>
+                Ctrl+V 粘贴
+              </v-chip>
+              <v-chip size="small" variant="tonal">
+                <v-icon start size="small">mdi-image</v-icon>
+                仅支持图片
+              </v-chip>
+            </div>
           </v-card-text>
         </v-card>
 
@@ -35,36 +48,43 @@
           ref="fileInput"
           type="file"
           multiple
+          accept="image/*"
           class="d-none"
           @change="handleFileSelect"
         />
 
         <!-- 上传设置 -->
-        <v-card v-if="channels.length > 0" class="mb-6">
-          <v-card-text>
-            <v-row>
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="selectedChannel"
-                  :items="channels"
-                  item-title="name"
-                  item-value="name"
-                  label="上传渠道"
-                  prepend-inner-icon="mdi-cloud"
-                  return-object
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="uploadFolder"
-                  label="上传目录（可选）"
-                  prepend-inner-icon="mdi-folder"
-                  placeholder="/"
-                />
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+        <v-expand-transition>
+          <v-card v-if="channels.length > 0" class="mb-6">
+            <v-card-text>
+              <v-row dense>
+                <v-col cols="12" sm="6">
+                  <v-select
+                    v-model="selectedChannel"
+                    :items="channels"
+                    item-title="name"
+                    item-value="name"
+                    label="上传渠道"
+                    prepend-inner-icon="mdi-cloud"
+                    return-object
+                    density="compact"
+                    variant="outlined"
+                  />
+                </v-col>
+                <v-col cols="12" sm="6">
+                  <v-text-field
+                    v-model="uploadFolder"
+                    label="上传目录（可选）"
+                    prepend-inner-icon="mdi-folder"
+                    placeholder="/"
+                    density="compact"
+                    variant="outlined"
+                  />
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </v-expand-transition>
 
         <!-- 无渠道提示 -->
         <v-alert
@@ -85,16 +105,15 @@
 
         <!-- 文件列表 -->
         <v-card v-if="files.length > 0" class="mb-6">
-          <v-card-title class="d-flex align-center justify-space-between">
-            <div>
+          <v-card-title class="d-flex align-center justify-space-between py-3">
+            <div class="d-flex align-center">
               <v-icon class="mr-2">mdi-file-multiple</v-icon>
-              待上传 ({{ files.length }})
+              <span>待上传 ({{ files.length }})</span>
             </div>
-            <div>
+            <div class="d-flex ga-2">
               <v-btn
                 color="primary"
-                variant="tonal"
-                class="mr-2"
+                size="small"
                 :loading="uploading"
                 :disabled="!selectedChannel"
                 @click="uploadAll"
@@ -104,6 +123,7 @@
               </v-btn>
               <v-btn
                 color="error"
+                size="small"
                 variant="tonal"
                 @click="clearFiles"
               >
@@ -115,90 +135,102 @@
 
           <v-divider />
 
-          <v-list lines="two">
-            <v-list-item
-              v-for="file in files"
-              :key="file.id"
-            >
-              <template #prepend>
-                <v-icon :color="file.color">{{ file.icon }}</v-icon>
-              </template>
+          <v-list lines="two" class="py-0">
+            <template v-for="file in files" :key="file.id">
+              <v-list-item>
+                <template #prepend>
+                  <v-avatar :color="file.color" variant="tonal" size="40">
+                    <v-icon :color="file.color">{{ file.icon }}</v-icon>
+                  </v-avatar>
+                </template>
 
-              <v-list-item-title>{{ file.name }}</v-list-item-title>
-              <v-list-item-subtitle>
-                {{ file.sizeText }}
-                <v-chip
-                  v-if="file.compressed"
-                  size="x-small"
-                  color="success"
-                  class="ml-2"
-                >
-                  已压缩
-                </v-chip>
-              </v-list-item-subtitle>
-
-              <template #append>
-                <div class="d-flex align-center ga-1">
-                  <v-progress-circular
-                    v-if="file.status === 'uploading'"
-                    :model-value="file.progress"
-                    size="32"
-                    width="3"
-                    color="primary"
-                  >
-                    <span class="text-caption">{{ Math.round(file.progress) }}</span>
-                  </v-progress-circular>
-                  
+                <v-list-item-title class="text-body-2 font-weight-medium">
+                  {{ file.name }}
+                </v-list-item-title>
+                <v-list-item-subtitle>
+                  <span>{{ file.sizeText }}</span>
                   <v-chip
-                    v-if="file.status === 'success'"
+                    v-if="file.compressed"
+                    size="x-small"
                     color="success"
-                    size="small"
+                    class="ml-2"
                     variant="tonal"
                   >
-                    完成
+                    已压缩
                   </v-chip>
-                  
-                  <v-chip
-                    v-if="file.status === 'error'"
-                    color="error"
-                    size="small"
-                    variant="tonal"
-                  >
-                    失败
-                  </v-chip>
+                </v-list-item-subtitle>
 
-                  <v-btn
-                    v-if="file.status === 'success'"
-                    icon
-                    size="small"
-                    variant="text"
-                    @click="showLink(file)"
-                  >
-                    <v-icon>mdi-link</v-icon>
-                  </v-btn>
-                  
-                  <v-btn
-                    v-if="file.status === 'error'"
-                    icon
-                    size="small"
-                    variant="text"
-                    color="warning"
-                    @click="retryUpload(file)"
-                  >
-                    <v-icon>mdi-refresh</v-icon>
-                  </v-btn>
-                  
-                  <v-btn
-                    icon
-                    size="small"
-                    variant="text"
-                    @click="removeFile(file.id)"
-                  >
-                    <v-icon>mdi-close</v-icon>
-                  </v-btn>
-                </div>
-              </template>
-            </v-list-item>
+                <template #append>
+                  <div class="d-flex align-center ga-1">
+                    <!-- 上传中 -->
+                    <v-progress-circular
+                      v-if="file.status === 'uploading'"
+                      :model-value="file.progress"
+                      size="32"
+                      width="3"
+                      color="primary"
+                    >
+                      <span class="text-caption">{{ Math.round(file.progress) }}</span>
+                    </v-progress-circular>
+                    
+                    <!-- 成功 -->
+                    <v-chip
+                      v-if="file.status === 'success'"
+                      color="success"
+                      size="small"
+                      variant="flat"
+                    >
+                      <v-icon start size="small">mdi-check</v-icon>
+                      完成
+                    </v-chip>
+                    
+                    <!-- 失败 -->
+                    <v-chip
+                      v-if="file.status === 'error'"
+                      color="error"
+                      size="small"
+                      variant="flat"
+                    >
+                      <v-icon start size="small">mdi-alert</v-icon>
+                      失败
+                    </v-chip>
+
+                    <!-- 操作按钮 -->
+                    <v-btn
+                      v-if="file.status === 'success'"
+                      icon
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      @click="showLink(file)"
+                    >
+                      <v-icon>mdi-link</v-icon>
+                    </v-btn>
+                    
+                    <v-btn
+                      v-if="file.status === 'error'"
+                      icon
+                      size="small"
+                      variant="text"
+                      color="warning"
+                      @click="retryUpload(file)"
+                    >
+                      <v-icon>mdi-refresh</v-icon>
+                    </v-btn>
+                    
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      @click="removeFile(file.id)"
+                    >
+                      <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                  </div>
+                </template>
+              </v-list-item>
+              <v-divider v-if="file !== files[files.length - 1]" />
+            </template>
           </v-list>
         </v-card>
       </v-col>
@@ -208,26 +240,26 @@
     <v-dialog v-model="showLinkDialog" max-width="500">
       <v-card>
         <v-card-title class="d-flex align-center justify-space-between">
-          <div>
+          <div class="d-flex align-center">
             <v-icon class="mr-2">mdi-link</v-icon>
-            复制链接
+            <span>复制链接</span>
           </div>
-          <v-btn icon variant="text" @click="showLinkDialog = false">
+          <v-btn icon variant="text" size="small" @click="showLinkDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
         <v-divider />
-        <v-card-text>
+        <v-card-text class="pa-0">
           <v-list>
-            <v-list-item v-for="item in linkFormats" :key="item.label">
+            <v-list-item v-for="item in linkFormats" :key="item.label" class="py-3">
               <template #prepend>
-                <v-icon :color="item.color">{{ item.icon }}</v-icon>
+                <v-icon :color="item.color" size="20">{{ item.icon }}</v-icon>
               </template>
               
-              <v-list-item-title class="text-caption font-weight-bold">
+              <v-list-item-title class="text-body-2 font-weight-medium">
                 {{ item.label }}
               </v-list-item-title>
-              <v-list-item-subtitle class="text-truncate">
+              <v-list-item-subtitle class="text-caption text-truncate">
                 {{ item.value }}
               </v-list-item-subtitle>
 
@@ -251,7 +283,7 @@
     </v-dialog>
 
     <!-- Toast -->
-    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000">
+    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" location="bottom right">
       {{ snackbarText }}
     </v-snackbar>
   </v-container>
@@ -491,15 +523,17 @@ function showMessage(text, color = 'success') {
 
 <style scoped>
 .upload-zone {
-  border: 2px dashed rgb(var(--v-border-color));
+  border: 2px dashed rgba(var(--v-border-color), var(--v-border-opacity));
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background: rgb(var(--v-theme-surface));
 }
 
 .upload-zone:hover {
   border-color: rgb(var(--v-theme-primary));
   background: rgba(var(--v-theme-primary), 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .upload-zone--active {

@@ -1,5 +1,11 @@
 <template>
-  <v-container>
+  <v-container fluid class="pa-4 pa-md-6">
+    <!-- 页面标题 -->
+    <div class="mb-6">
+      <h1 class="text-h4 font-weight-bold">管理后台</h1>
+      <p class="text-body-1 text-medium-emphasis mt-1">管理文件、配置渠道、设置安全</p>
+    </div>
+
     <!-- 标签页 -->
     <v-tabs v-model="activeTab" color="primary" class="mb-6">
       <v-tab value="files">
