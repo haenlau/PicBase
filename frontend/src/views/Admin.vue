@@ -259,12 +259,20 @@
                       </v-icon>
                     </template>
                     <v-list-item-title>{{ ch.name }}</v-list-item-title>
+                    <template #append>
+                      <v-btn icon size="x-small" variant="text" @click="editChannel(type.id, ch)">
+                        <v-icon size="small">mdi-pencil</v-icon>
+                      </v-btn>
+                      <v-btn icon size="x-small" variant="text" color="error" @click="deleteChannel(type.id, ch)">
+                        <v-icon size="small">mdi-delete</v-icon>
+                      </v-btn>
+                    </template>
                   </v-list-item>
                 </v-list>
               </v-card-text>
               <v-card-actions>
                 <v-spacer />
-                <v-btn variant="tonal" size="small" @click="showMessage('渠道配置功能开发中', 'info')">
+                <v-btn variant="tonal" size="small" @click="addChannel(type.id)">
                   <v-icon start>mdi-plus</v-icon>
                   添加
                 </v-btn>
@@ -306,6 +314,171 @@
         </v-card>
       </v-tabs-window-item>
     </v-tabs-window>
+
+    <!-- 渠道配置弹窗 -->
+    <v-dialog v-model="showChannelDialog" max-width="500" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>{{ editingChannel ? '编辑' : '添加' }} {{ getChannelTypeName(editingChannelType) }}</span>
+          <v-btn icon variant="text" @click="showChannelDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-divider />
+        <v-card-text>
+          <v-form ref="channelFormRef">
+            <v-text-field
+              v-model="channelForm.name"
+              label="渠道名称"
+              :rules="[v => !!v || '请输入名称']"
+              class="mb-2"
+            />
+
+            <!-- Telegram -->
+            <template v-if="editingChannelType === 'telegram'">
+              <v-text-field
+                v-model="channelForm.botToken"
+                label="Bot Token"
+                :rules="[v => !!v || '请输入Bot Token']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.chatId"
+                label="Chat ID"
+                :rules="[v => !!v || '请输入Chat ID']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.proxyUrl"
+                label="代理URL（可选）"
+                class="mb-2"
+              />
+            </template>
+
+            <!-- R2 -->
+            <template v-if="editingChannelType === 'cfr2'">
+              <v-text-field
+                v-model="channelForm.publicUrl"
+                label="公共URL"
+                :rules="[v => !!v || '请输入公共URL']"
+                class="mb-2"
+              />
+            </template>
+
+            <!-- S3 -->
+            <template v-if="editingChannelType === 's3'">
+              <v-text-field
+                v-model="channelForm.endpoint"
+                label="端点"
+                :rules="[v => !!v || '请输入端点']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.accessKeyId"
+                label="Access Key ID"
+                :rules="[v => !!v || '请输入Access Key ID']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.secretAccessKey"
+                label="Secret Access Key"
+                type="password"
+                :rules="[v => !!v || '请输入Secret Access Key']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.bucketName"
+                label="存储桶名称"
+                :rules="[v => !!v || '请输入存储桶名称']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.region"
+                label="区域"
+                placeholder="auto"
+                class="mb-2"
+              />
+            </template>
+
+            <!-- Discord -->
+            <template v-if="editingChannelType === 'discord'">
+              <v-text-field
+                v-model="channelForm.botToken"
+                label="Bot Token"
+                :rules="[v => !!v || '请输入Bot Token']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.channelId"
+                label="频道ID"
+                :rules="[v => !!v || '请输入频道ID']"
+                class="mb-2"
+              />
+            </template>
+
+            <!-- HuggingFace -->
+            <template v-if="editingChannelType === 'huggingface'">
+              <v-text-field
+                v-model="channelForm.token"
+                label="API Token"
+                type="password"
+                :rules="[v => !!v || '请输入Token']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.repo"
+                label="仓库"
+                :rules="[v => !!v || '请输入仓库']"
+                placeholder="username/repo"
+                class="mb-2"
+              />
+            </template>
+
+            <!-- WebDAV -->
+            <template v-if="editingChannelType === 'webdav'">
+              <v-text-field
+                v-model="channelForm.baseUrl"
+                label="WebDAV URL"
+                :rules="[v => !!v || '请输入URL']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.username"
+                label="用户名"
+                :rules="[v => !!v || '请输入用户名']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.password"
+                label="密码"
+                type="password"
+                :rules="[v => !!v || '请输入密码']"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="channelForm.publicUrl"
+                label="公共URL（可选）"
+                class="mb-2"
+              />
+            </template>
+
+            <v-switch
+              v-model="channelForm.enabled"
+              label="启用"
+              color="success"
+              hide-details
+            />
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="showChannelDialog = false">取消</v-btn>
+          <v-btn color="primary" @click="saveChannel" :loading="savingChannel">
+            {{ editingChannel ? '保存' : '添加' }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- 链接弹窗 -->
     <v-dialog v-model="showLinkDialog" max-width="500">
@@ -391,6 +564,40 @@ const pageSize = ref(50)
 const hasMore = ref(true)
 const allChannels = ref([])
 
+// 渠道配置
+const uploadConfig = ref({
+  telegram: { channels: [] },
+  cfr2: { channels: [] },
+  s3: { channels: [] },
+  discord: { channels: [] },
+  huggingface: { channels: [] },
+  webdav: { channels: [] }
+})
+const showChannelDialog = ref(false)
+const editingChannel = ref(null)
+const editingChannelType = ref('')
+const savingChannel = ref(false)
+const channelFormRef = ref(null)
+const channelForm = ref({
+  name: '',
+  enabled: true,
+  botToken: '',
+  chatId: '',
+  proxyUrl: '',
+  publicUrl: '',
+  endpoint: '',
+  accessKeyId: '',
+  secretAccessKey: '',
+  bucketName: '',
+  region: 'auto',
+  channelId: '',
+  token: '',
+  repo: '',
+  baseUrl: '',
+  username: '',
+  password: ''
+})
+
 // 链接弹窗
 const showLinkDialog = ref(false)
 const linkFile = ref({ url: '', name: '' })
@@ -449,6 +656,7 @@ const linkFormats = computed(() => {
 onMounted(() => {
   fetchFiles()
   fetchChannels()
+  fetchUploadConfig()
 })
 
 watch(filterChannel, () => {
@@ -505,8 +713,103 @@ async function fetchChannels() {
   }
 }
 
+async function fetchUploadConfig() {
+  try {
+    const data = await api.get('/api/manage/sysConfig/upload')
+    uploadConfig.value = data
+  } catch (err) {
+    console.error('Failed to fetch upload config:', err)
+  }
+}
+
 function getChannelsByType(type) {
-  return allChannels.value.filter(ch => ch.type === type)
+  return uploadConfig.value[type]?.channels || []
+}
+
+function getChannelTypeName(type) {
+  const found = channelTypes.find(t => t.id === type)
+  return found?.name || type
+}
+
+function addChannel(type) {
+  editingChannel.value = null
+  editingChannelType.value = type
+  resetChannelForm()
+  showChannelDialog.value = true
+}
+
+function editChannel(type, channel) {
+  editingChannel.value = channel
+  editingChannelType.value = type
+  channelForm.value = { ...channel }
+  showChannelDialog.value = true
+}
+
+function resetChannelForm() {
+  channelForm.value = {
+    name: '',
+    enabled: true,
+    botToken: '',
+    chatId: '',
+    proxyUrl: '',
+    publicUrl: '',
+    endpoint: '',
+    accessKeyId: '',
+    secretAccessKey: '',
+    bucketName: '',
+    region: 'auto',
+    channelId: '',
+    token: '',
+    repo: '',
+    baseUrl: '',
+    username: '',
+    password: ''
+  }
+}
+
+async function saveChannel() {
+  const { valid } = await channelFormRef.value.validate()
+  if (!valid) return
+
+  savingChannel.value = true
+  try {
+    const type = editingChannelType.value
+    const channels = uploadConfig.value[type]?.channels || []
+    
+    if (editingChannel.value) {
+      // 编辑
+      const index = channels.findIndex(c => c.name === editingChannel.value.name)
+      if (index >= 0) {
+        channels[index] = { ...channelForm.value }
+      }
+    } else {
+      // 添加
+      channels.push({ ...channelForm.value })
+    }
+    
+    uploadConfig.value[type].channels = channels
+    
+    // 保存到后端
+    await api.post('/api/manage/sysConfig/upload', uploadConfig.value)
+    
+    showChannelDialog.value = false
+    showMessage(editingChannel.value ? '保存成功' : '添加成功', 'success')
+    
+    // 刷新渠道列表
+    await fetchChannels()
+  } catch (err) {
+    showMessage('保存失败', 'error')
+  } finally {
+    savingChannel.value = false
+  }
+}
+
+async function deleteChannel(type, channel) {
+  confirmTitle.value = '删除渠道'
+  confirmMessage.value = `确定要删除 "${channel.name}" 吗？`
+  confirmAction.value = 'deleteChannel'
+  deleteTarget.value = { type, channel }
+  showConfirm.value = true
 }
 
 function loadMore() {
@@ -607,6 +910,8 @@ async function handleConfirm() {
     await deleteFile(deleteTarget.value)
   } else if (confirmAction.value === 'batchDelete') {
     await batchDelete()
+  } else if (confirmAction.value === 'deleteChannel' && deleteTarget.value) {
+    await doDeleteChannel(deleteTarget.value.type, deleteTarget.value.channel)
   }
 }
 
@@ -635,6 +940,21 @@ async function batchDelete() {
   files.value = files.value.filter(f => !selectedFiles.value.some(s => s.name === f.name))
   selectedFiles.value = []
   showMessage(`成功删除 ${successCount} 个文件`, 'success')
+}
+
+async function doDeleteChannel(type, channel) {
+  try {
+    const channels = uploadConfig.value[type]?.channels || []
+    const index = channels.findIndex(c => c.name === channel.name)
+    if (index >= 0) {
+      channels.splice(index, 1)
+      await api.post('/api/manage/sysConfig/upload', uploadConfig.value)
+      showMessage('删除成功', 'success')
+      await fetchChannels()
+    }
+  } catch (err) {
+    showMessage('删除失败', 'error')
+  }
 }
 
 async function saveSecurity() {
