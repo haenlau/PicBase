@@ -244,16 +244,9 @@
 
       <!-- 渠道配置 -->
       <v-tabs-window-item value="channels">
-        <v-alert type="info" variant="tonal" class="mb-4">
-          <template #prepend>
-            <v-icon>mdi-information</v-icon>
-          </template>
-          <span>Cloudflare R2 需要在 Cloudflare Dashboard 中绑定环境变量 <code>img_r2</code>，此处仅配置公共访问URL。</span>
-        </v-alert>
-
         <v-row>
           <v-col v-for="type in channelTypes" :key="type.id" cols="12" md="6" lg="4">
-            <v-card :class="{ 'border-primary': type.id === 'cfr2' && hasR2Binding }">
+            <v-card>
               <v-card-title class="d-flex align-center">
                 <v-icon :color="type.color" class="mr-2">{{ type.icon }}</v-icon>
                 {{ type.name }}
@@ -270,11 +263,29 @@
               <v-card-subtitle>{{ type.description }}</v-card-subtitle>
               <v-divider />
               <v-card-text>
-                <div v-if="type.id === 'cfr2' && !hasR2Binding" class="text-medium-emphasis text-center py-4">
-                  <v-icon size="48" color="grey" class="mb-2">mdi-cloud-off-outline</v-icon>
-                  <p>请先在 Cloudflare Dashboard 中绑定 R2 存储桶</p>
-                  <p class="text-caption">变量名: <code>img_r2</code></p>
+                <!-- R2 特殊提示 -->
+                <div v-if="type.id === 'cfr2'" class="text-center py-4">
+                  <v-icon v-if="!hasR2Binding" size="48" color="warning" class="mb-2">mdi-alert-circle-outline</v-icon>
+                  <v-icon v-else size="48" color="success" class="mb-2">mdi-check-circle-outline</v-icon>
+                  
+                  <p class="text-body-2 mb-2">
+                    {{ hasR2Binding ? 'R2 存储桶已绑定' : '请在 Cloudflare Dashboard 中绑定 R2' }}
+                  </p>
+                  
+                  <v-card v-if="!hasR2Binding" variant="tonal" color="info" class="text-left mt-3">
+                    <v-card-text class="pa-3">
+                      <p class="text-caption font-weight-bold mb-1">绑定步骤：</p>
+                      <ol class="text-caption pl-4">
+                        <li>进入 Cloudflare Dashboard</li>
+                        <li>选择 Pages 项目</li>
+                        <li>设置 → 函数 → R2 存储桶</li>
+                        <li>添加绑定：<code>img_r2</code></li>
+                      </ol>
+                    </v-card-text>
+                  </v-card>
                 </div>
+
+                <!-- 其他渠道 -->
                 <div v-else-if="getChannelsByType(type.id).length === 0" class="text-medium-emphasis text-center py-4">
                   未配置
                 </div>
@@ -286,18 +297,11 @@
                       </v-icon>
                     </template>
                     <v-list-item-title>{{ ch.name }}</v-list-item-title>
-                    <v-list-item-subtitle v-if="ch.savePath === 'environment variable'">
-                      <v-chip size="x-small" color="info" variant="tonal">环境变量</v-chip>
-                    </v-list-item-subtitle>
                     <template #append>
                       <v-btn icon size="x-small" variant="text" @click="editChannel(type.id, ch)">
                         <v-icon size="small">mdi-pencil</v-icon>
                       </v-btn>
-                      <v-btn
-                        v-if="ch.savePath !== 'environment variable'"
-                        icon size="x-small" variant="text" color="error"
-                        @click="deleteChannel(type.id, ch)"
-                      >
+                      <v-btn icon size="x-small" variant="text" color="error" @click="deleteChannel(type.id, ch)">
                         <v-icon size="small">mdi-delete</v-icon>
                       </v-btn>
                     </template>
@@ -307,22 +311,13 @@
               <v-card-actions>
                 <v-spacer />
                 <v-btn
-                  v-if="type.id !== 'cfr2' || hasR2Binding"
+                  v-if="type.id !== 'cfr2'"
                   variant="tonal"
                   size="small"
                   @click="addChannel(type.id)"
                 >
                   <v-icon start>mdi-plus</v-icon>
                   添加
-                </v-btn>
-                <v-btn
-                  v-if="type.id === 'cfr2' && hasR2Binding"
-                  variant="text"
-                  size="small"
-                  @click="editR2Config"
-                >
-                  <v-icon start>mdi-cog</v-icon>
-                  配置URL
                 </v-btn>
               </v-card-actions>
             </v-card>
@@ -797,14 +792,6 @@ function editChannel(type, channel) {
   editingChannelType.value = type
   channelForm.value = { ...channel }
   showChannelDialog.value = true
-}
-
-function editR2Config() {
-  const r2Channels = uploadConfig.value.cfr2?.channels || []
-  const r2Channel = r2Channels.find(ch => ch.savePath === 'environment variable')
-  if (r2Channel) {
-    editChannel('cfr2', r2Channel)
-  }
 }
 
 function resetChannelForm() {
