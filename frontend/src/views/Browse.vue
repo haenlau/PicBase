@@ -98,15 +98,90 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn @click="copyLink(previewImage)">
-            <v-icon start>mdi-content-copy</v-icon>
-            {{ t('dashboard.copyLink') }}
+          <v-btn @click="showLinkFormatDialog = true">
+            <v-icon start>mdi-link</v-icon>
+            Copy Link
           </v-btn>
           <v-btn :href="getImageUrl(previewImage)" target="_blank">
             <v-icon start>mdi-download</v-icon>
             {{ t('common.download') }}
           </v-btn>
         </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Link Format Dialog -->
+    <v-dialog v-model="showLinkFormatDialog" max-width="500">
+      <v-card v-if="previewImage">
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>
+            <v-icon class="mr-2">mdi-link</v-icon>
+            Copy Link
+          </span>
+          <v-btn icon variant="text" @click="showLinkFormatDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-divider />
+        <v-card-text>
+          <v-list>
+            <v-list-item>
+              <template #prepend>
+                <v-icon color="primary">mdi-link-variant</v-icon>
+              </template>
+              <v-list-item-title class="text-caption font-weight-bold">Direct Link</v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">{{ getDirectLink(previewImage) }}</v-list-item-subtitle>
+              <template #append>
+                <v-btn size="small" variant="tonal" @click="copyText(getDirectLink(previewImage))">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copy
+                </v-btn>
+              </template>
+            </v-list-item>
+            <v-divider />
+            <v-list-item>
+              <template #prepend>
+                <v-icon color="success">mdi-language-markdown</v-icon>
+              </template>
+              <v-list-item-title class="text-caption font-weight-bold">Markdown</v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">{{ getMarkdownLink(previewImage) }}</v-list-item-subtitle>
+              <template #append>
+                <v-btn size="small" variant="tonal" @click="copyText(getMarkdownLink(previewImage))">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copy
+                </v-btn>
+              </template>
+            </v-list-item>
+            <v-divider />
+            <v-list-item>
+              <template #prepend>
+                <v-icon color="info">mdi-language-html5</v-icon>
+              </template>
+              <v-list-item-title class="text-caption font-weight-bold">HTML</v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">{{ getHtmlLink(previewImage) }}</v-list-item-subtitle>
+              <template #append>
+                <v-btn size="small" variant="tonal" @click="copyText(getHtmlLink(previewImage))">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copy
+                </v-btn>
+              </template>
+            </v-list-item>
+            <v-divider />
+            <v-list-item>
+              <template #prepend>
+                <v-icon color="warning">mdi-code-brackets</v-icon>
+              </template>
+              <v-list-item-title class="text-caption font-weight-bold">BBCode</v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">{{ getBBCodeLink(previewImage) }}</v-list-item-subtitle>
+              <template #append>
+                <v-btn size="small" variant="tonal" @click="copyText(getBBCodeLink(previewImage))">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copy
+                </v-btn>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
       </v-card>
     </v-dialog>
 
@@ -133,6 +208,7 @@ const page = ref(0)
 const pageSize = ref(24)
 const hasMore = ref(true)
 const showPreview = ref(false)
+const showLinkFormatDialog = ref(false)
 const previewImage = ref(null)
 const snackbar = ref(false)
 const snackbarText = ref('')
@@ -188,7 +264,6 @@ const loadMore = () => {
 }
 
 const getImageUrl = (image) => {
-  // API 返回的 name 就是文件 ID
   return `/file/${image.name}`
 }
 
@@ -197,9 +272,25 @@ const openPreview = (image) => {
   showPreview.value = true
 }
 
-const copyLink = async (image) => {
-  const url = `${window.location.origin}/file/${image.name}`
-  const success = await copyToClipboard(url)
+// 链接格式生成
+const getDirectLink = (image) => {
+  return `${window.location.origin}/file/${image.name}`
+}
+
+const getMarkdownLink = (image) => {
+  return `![${image.name}](${getDirectLink(image)})`
+}
+
+const getHtmlLink = (image) => {
+  return `<img src="${getDirectLink(image)}" alt="${image.name}" />`
+}
+
+const getBBCodeLink = (image) => {
+  return `[img]${getDirectLink(image)}[/img]`
+}
+
+const copyText = async (text) => {
+  const success = await copyToClipboard(text)
   if (success) {
     showMessage(t('dashboard.linkCopied'), 'success')
   }

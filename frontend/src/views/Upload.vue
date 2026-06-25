@@ -236,14 +236,24 @@
                 <v-list-item-title>{{ item.name }}</v-list-item-title>
                 <v-list-item-subtitle>{{ formatDateTime(item.time) }}</v-list-item-subtitle>
                 <template #append>
-                  <v-btn
-                    icon
-                    size="small"
-                    variant="text"
-                    @click="copyHistoryLink(item)"
-                  >
-                    <v-icon>mdi-content-copy</v-icon>
-                  </v-btn>
+                  <div class="d-flex align-center ga-1">
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      @click="showHistoryLinkDialog(item)"
+                    >
+                      <v-icon>mdi-link</v-icon>
+                    </v-btn>
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      @click="copyHistoryLink(item)"
+                    >
+                      <v-icon>mdi-content-copy</v-icon>
+                    </v-btn>
+                  </div>
                 </template>
               </v-list-item>
             </v-list>
@@ -478,6 +488,15 @@ const retryUpload = async (file) => {
 
 const showLinkDialog = (file) => {
   linkDialogFile.value = file
+  showLinkFormatDialog.value = true
+}
+
+const showHistoryLinkDialog = (item) => {
+  // 将历史记录项转换为链接弹窗可用的格式
+  linkDialogFile.value = {
+    name: item.name,
+    url: item.url
+  }
   showLinkFormatDialog.value = true
 }
 
