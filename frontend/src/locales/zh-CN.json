@@ -35,7 +35,9 @@
     "name": "名称",
     "channel": "渠道",
     "tags": "标签",
-    "details": "详情"
+    "details": "详情",
+    "enabled": "已启用",
+    "disabled": "已禁用"
   },
   "auth": {
     "login": "登录",
@@ -74,7 +76,11 @@
     "noHistory": "暂无上传历史",
     "maxFileSize": "最大文件大小：{size}",
     "fileTooLarge": "文件太大",
-    "invalidFileType": "文件类型无效"
+    "invalidFileType": "文件类型无效",
+    "noChannels": "未配置上传渠道",
+    "noChannelsDesc": "请先配置至少一个存储渠道后再上传文件。",
+    "configureChannels": "配置渠道",
+    "settings": "上传设置"
   },
   "dashboard": {
     "title": "控制台",
@@ -109,7 +115,12 @@
     "batchTag": "批量标签",
     "selectFiles": "选择文件",
     "noFiles": "暂无文件",
-    "emptyFolder": "此文件夹为空"
+    "emptyFolder": "此文件夹为空",
+    "linkFormats": "链接格式",
+    "directLink": "直链",
+    "markdown": "Markdown",
+    "html": "HTML",
+    "bbcode": "BBCode"
   },
   "settings": {
     "title": "设置",
@@ -119,7 +130,7 @@
     "appearance": "外观",
     "language": "语言",
     "darkMode": "深色模式",
-    "channels": "上传渠道",
+    "channels": "存储渠道",
     "telegram": "Telegram",
     "cloudflareR2": "Cloudflare R2",
     "s3": "S3 兼容",
@@ -127,14 +138,55 @@
     "huggingface": "Hugging Face",
     "webdav": "WebDAV",
     "saveSuccess": "设置保存成功",
-    "saveFailed": "设置保存失败"
+    "saveFailed": "设置保存失败",
+    "addChannel": "添加渠道",
+    "editChannel": "编辑渠道",
+    "deleteChannel": "删除渠道",
+    "channelName": "渠道名称",
+    "channelEnabled": "启用",
+    "testConnection": "测试连接",
+    "noChannels": "未配置渠道",
+    "configureNow": "立即配置"
   },
   "browse": {
     "title": "浏览",
     "publicGallery": "公共图库",
     "searchPlaceholder": "搜索文件...",
     "noImages": "未找到图片",
-    "loadMore": "加载更多"
+    "loadMore": "加载更多",
+    "copyLink": "复制链接",
+    "download": "下载"
+  },
+  "channels": {
+    "title": "存储渠道",
+    "description": "配置文件上传的存储渠道。每种渠道类型可以有多个实例。",
+    "addChannel": "添加",
+    "editChannel": "编辑",
+    "deleteChannel": "删除",
+    "deleteConfirm": "确定要删除渠道 \"{name}\" 吗？",
+    "channelName": "渠道名称",
+    "channelNameRequired": "渠道名称不能为空",
+    "enabled": "启用",
+    "disabled": "禁用",
+    "noChannels": "未配置渠道",
+    "botToken": "Bot Token",
+    "chatId": "Chat ID",
+    "proxyUrl": "代理 URL（可选）",
+    "publicUrl": "公共 URL",
+    "endpoint": "端点",
+    "accessKeyId": "Access Key ID",
+    "secretAccessKey": "Secret Access Key",
+    "bucketName": "存储桶名称",
+    "region": "区域",
+    "pathStyle": "使用路径风格",
+    "channelId": "频道 ID",
+    "token": "API Token",
+    "repo": "仓库",
+    "isPrivate": "私有仓库",
+    "baseUrl": "WebDAV URL",
+    "username": "用户名",
+    "saveSuccess": "渠道保存成功",
+    "deleteSuccess": "渠道删除成功"
   },
   "notFound": {
     "title": "404",

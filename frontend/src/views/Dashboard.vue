@@ -569,9 +569,29 @@ const fetchFiles = async () => {
     files.value = response.data.files || []
     totalCount.value = response.data.totalCount || 0
     
-    if (response.data.totalCount !== undefined) {
-      stats.value.totalFiles = response.data.totalCount
-    }
+    // 更新统计
+    stats.value.totalFiles = response.data.totalCount || 0
+    
+    // 计算当前页面文件的总大小和渠道数
+    let totalSize = 0
+    const channels = new Set()
+    
+    files.value.forEach(file => {
+      const size = getFileSize(file)
+      totalSize += size
+      
+      const channel = file.metadata?.Channel
+      if (channel) channels.add(channel)
+    })
+    
+    stats.value.storageUsed = formatFileSize(totalSize)
+    stats.value.channels = channels.size
+    stats.value.recentUploads = files.value.filter(f => {
+      const time = f.metadata?.TimeStamp
+      if (!time) return false
+      const dayAgo = Date.now() - 24 * 60 * 60 * 1000
+      return time > dayAgo
+    }).length
   } catch (error) {
     console.error('Failed to fetch files:', error)
     showMessage(t('common.error'), 'error')
@@ -589,8 +609,17 @@ const clearSearch = () => {
 // 从 metadata 中获取文件大小
 const getFileSize = (file) => {
   const sizeStr = file.metadata?.FileSize
-  if (sizeStr) {
-    return parseFloat(sizeStr) * 1024 * 1024 // MB to bytes
+  if (!sizeStr) return 0
+  
+  // 解析 "2.5" 或 "2.5MB" 格式
+  const numMatch = sizeStr.toString().match(/[\d.]+/)
+  if (numMatch) {
+    const num = parseFloat(numMatch[0])
+    // 如果数字小于1000，假设是MB单位
+    if (num < 1000) {
+      return num * 1024 * 1024
+    }
+    return num
   }
   return 0
 }

@@ -51,7 +51,7 @@
           />
           <v-list-item
             prepend-icon="mdi-logout"
-            title="Logout"
+            :title="t('auth.logout')"
             rounded="lg"
             @click="handleLogout"
           />

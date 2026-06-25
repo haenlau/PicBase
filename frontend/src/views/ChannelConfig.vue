@@ -5,21 +5,21 @@
         <v-card-title class="d-flex align-center justify-space-between">
           <div>
             <v-icon class="mr-2">mdi-server-network</v-icon>
-            {{ t('settings.channels') }}
+            {{ t('channels.title') }}
           </div>
           <v-btn
             color="primary"
             prepend-icon="mdi-plus"
             @click="showAddDialog = true"
           >
-            Add Channel
+            {{ t('channels.addChannel') }}
           </v-btn>
         </v-card-title>
         <v-divider />
 
         <v-card-text>
           <v-alert type="info" variant="tonal" class="mb-4">
-            Configure storage channels for file uploads. Each channel type can have multiple instances.
+            {{ t('channels.description') }}
           </v-alert>
 
           <!-- Channel Types -->
@@ -27,7 +27,7 @@
             <v-col v-for="channelType in channelTypes" :key="channelType.type" cols="12" md="6" lg="4">
               <v-card variant="outlined" class="channel-card">
                 <v-card-title class="d-flex align-center">
-                  <v-icon :color="getChannelColor(channelType.type)" class="mr-2">
+                  <v-icon :color="channelType.color" class="mr-2">
                     {{ channelType.icon }}
                   </v-icon>
                   {{ channelType.name }}
@@ -50,7 +50,7 @@
                         </template>
                         <v-list-item-title>{{ channel.name }}</v-list-item-title>
                         <v-list-item-subtitle>
-                          {{ channel.enabled ? 'Enabled' : 'Disabled' }}
+                          {{ channel.enabled ? t('channels.enabled') : t('channels.disabled') }}
                         </v-list-item-subtitle>
                         <template #append>
                           <v-btn
@@ -78,7 +78,7 @@
                   <!-- Empty State -->
                   <div v-else class="text-center py-4">
                     <v-icon size="48" color="grey" class="mb-2">mdi-server-off</v-icon>
-                    <p class="text-caption text-medium-emphasis">No channels configured</p>
+                    <p class="text-caption text-medium-emphasis">{{ t('channels.noChannels') }}</p>
                   </div>
 
                   <v-btn
@@ -89,7 +89,7 @@
                     @click="addChannel(channelType.type)"
                   >
                     <v-icon start size="small">mdi-plus</v-icon>
-                    Add {{ channelType.name }}
+                    {{ t('channels.addChannel') }} {{ channelType.name }}
                   </v-btn>
                 </v-card-text>
               </v-card>
@@ -103,7 +103,7 @@
     <v-dialog v-model="showChannelDialog" max-width="600" persistent>
       <v-card>
         <v-card-title class="d-flex align-center justify-space-between">
-          <span>{{ editingChannel ? 'Edit' : 'Add' }} {{ getChannelTypeName(editingChannelType) }}</span>
+          <span>{{ editingChannel ? t('channels.editChannel') : t('channels.addChannel') }} {{ getChannelTypeName(editingChannelType) }}</span>
           <v-btn icon variant="text" @click="closeDialog">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -114,8 +114,8 @@
             <!-- Common Fields -->
             <v-text-field
               v-model="channelForm.name"
-              label="Channel Name"
-              :rules="[v => !!v || 'Name is required']"
+              :label="t('channels.channelName')"
+              :rules="[v => !!v || t('channels.channelNameRequired')]"
               variant="outlined"
               density="comfortable"
               class="mb-4"
@@ -125,8 +125,8 @@
             <template v-if="editingChannelType === 'telegram'">
               <v-text-field
                 v-model="channelForm.botToken"
-                label="Bot Token"
-                :rules="[v => !!v || 'Bot Token is required']"
+                :label="t('channels.botToken')"
+                :rules="[v => !!v || t('channels.botToken') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
@@ -135,22 +135,18 @@
               />
               <v-text-field
                 v-model="channelForm.chatId"
-                label="Chat ID"
-                :rules="[v => !!v || 'Chat ID is required']"
+                :label="t('channels.chatId')"
+                :rules="[v => !!v || t('channels.chatId') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
-                hint="Channel or group ID"
-                persistent-hint
               />
               <v-text-field
                 v-model="channelForm.proxyUrl"
-                label="Proxy URL (Optional)"
+                :label="t('channels.proxyUrl')"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
-                hint="For API proxy"
-                persistent-hint
               />
             </template>
 
@@ -158,13 +154,11 @@
             <template v-if="editingChannelType === 'cfr2'">
               <v-text-field
                 v-model="channelForm.publicUrl"
-                label="Public URL"
-                :rules="[v => !!v || 'Public URL is required']"
+                :label="t('channels.publicUrl')"
+                :rules="[v => !!v || t('channels.publicUrl') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
-                hint="Your R2 public domain"
-                persistent-hint
               />
             </template>
 
@@ -172,24 +166,24 @@
             <template v-if="editingChannelType === 's3'">
               <v-text-field
                 v-model="channelForm.endpoint"
-                label="Endpoint"
-                :rules="[v => !!v || 'Endpoint is required']"
+                :label="t('channels.endpoint')"
+                :rules="[v => !!v || t('channels.endpoint') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
               />
               <v-text-field
                 v-model="channelForm.accessKeyId"
-                label="Access Key ID"
-                :rules="[v => !!v || 'Access Key ID is required']"
+                :label="t('channels.accessKeyId')"
+                :rules="[v => !!v || t('channels.accessKeyId') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
               />
               <v-text-field
                 v-model="channelForm.secretAccessKey"
-                label="Secret Access Key"
-                :rules="[v => !!v || 'Secret Access Key is required']"
+                :label="t('channels.secretAccessKey')"
+                :rules="[v => !!v || t('channels.secretAccessKey') + ' *']"
                 type="password"
                 variant="outlined"
                 density="comfortable"
@@ -197,26 +191,24 @@
               />
               <v-text-field
                 v-model="channelForm.bucketName"
-                label="Bucket Name"
-                :rules="[v => !!v || 'Bucket Name is required']"
+                :label="t('channels.bucketName')"
+                :rules="[v => !!v || t('channels.bucketName') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
               />
               <v-text-field
                 v-model="channelForm.region"
-                label="Region"
+                :label="t('channels.region')"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
-                hint="Default: auto"
+                hint="auto"
                 persistent-hint
               />
               <v-switch
                 v-model="channelForm.pathStyle"
-                label="Use Path Style"
-                hint="Enable for S3-compatible services"
-                persistent-hint
+                :label="t('channels.pathStyle')"
                 density="compact"
                 class="mb-4"
               />
@@ -226,28 +218,26 @@
             <template v-if="editingChannelType === 'discord'">
               <v-text-field
                 v-model="channelForm.botToken"
-                label="Bot Token"
-                :rules="[v => !!v || 'Bot Token is required']"
+                :label="t('channels.botToken')"
+                :rules="[v => !!v || t('channels.botToken') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
               />
               <v-text-field
                 v-model="channelForm.channelId"
-                label="Channel ID"
-                :rules="[v => !!v || 'Channel ID is required']"
+                :label="t('channels.channelId')"
+                :rules="[v => !!v || t('channels.channelId') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
               />
               <v-text-field
                 v-model="channelForm.proxyUrl"
-                label="CDN Proxy URL (Optional)"
+                :label="t('channels.proxyUrl')"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
-                hint="Proxy for CDN access"
-                persistent-hint
               />
             </template>
 
@@ -255,8 +245,8 @@
             <template v-if="editingChannelType === 'huggingface'">
               <v-text-field
                 v-model="channelForm.token"
-                label="API Token"
-                :rules="[v => !!v || 'API Token is required']"
+                :label="t('channels.token')"
+                :rules="[v => !!v || t('channels.token') + ' *']"
                 type="password"
                 variant="outlined"
                 density="comfortable"
@@ -264,8 +254,8 @@
               />
               <v-text-field
                 v-model="channelForm.repo"
-                label="Repository"
-                :rules="[v => !!v || 'Repository is required']"
+                :label="t('channels.repo')"
+                :rules="[v => !!v || t('channels.repo') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
@@ -274,7 +264,7 @@
               />
               <v-switch
                 v-model="channelForm.isPrivate"
-                label="Private Repository"
+                :label="t('channels.isPrivate')"
                 density="compact"
                 class="mb-4"
               />
@@ -284,16 +274,16 @@
             <template v-if="editingChannelType === 'webdav'">
               <v-text-field
                 v-model="channelForm.baseUrl"
-                label="WebDAV URL"
-                :rules="[v => !!v || 'URL is required']"
+                :label="t('channels.baseUrl')"
+                :rules="[v => !!v || t('channels.baseUrl') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
               />
               <v-text-field
                 v-model="channelForm.username"
-                label="Username"
-                :rules="[v => !!v || 'Username is required']"
+                :label="t('channels.username')"
+                :rules="[v => !!v || t('channels.username') + ' *']"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
@@ -301,7 +291,7 @@
               <v-text-field
                 v-model="channelForm.password"
                 label="Password"
-                :rules="[v => !!v || 'Password is required']"
+                :rules="[v => !!v || 'Password *']"
                 type="password"
                 variant="outlined"
                 density="comfortable"
@@ -309,19 +299,17 @@
               />
               <v-text-field
                 v-model="channelForm.publicUrl"
-                label="Public URL (Optional)"
+                :label="t('channels.publicUrl')"
                 variant="outlined"
                 density="comfortable"
                 class="mb-4"
-                hint="For public access"
-                persistent-hint
               />
             </template>
 
             <!-- Enable/Disable -->
             <v-switch
               v-model="channelForm.enabled"
-              label="Enabled"
+              :label="t('channels.enabled')"
               color="success"
               density="compact"
             />
@@ -329,9 +317,9 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn @click="closeDialog">Cancel</v-btn>
+          <v-btn @click="closeDialog">{{ t('common.cancel') }}</v-btn>
           <v-btn color="primary" @click="saveChannel" :loading="saving">
-            {{ editingChannel ? 'Update' : 'Add' }}
+            {{ editingChannel ? t('common.save') : t('channels.addChannel') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -374,26 +362,20 @@ const uploadConfig = ref({
 const channelForm = ref({
   name: '',
   enabled: true,
-  // Telegram
   botToken: '',
   chatId: '',
   proxyUrl: '',
-  // R2
   publicUrl: '',
-  // S3
   endpoint: '',
   accessKeyId: '',
   secretAccessKey: '',
   bucketName: '',
   region: '',
   pathStyle: false,
-  // Discord
   channelId: '',
-  // HuggingFace
   token: '',
   repo: '',
   isPrivate: false,
-  // WebDAV
   baseUrl: '',
   username: '',
   password: ''
@@ -461,11 +443,6 @@ const getChannelsByType = (type) => {
   return uploadConfig.value[type]?.channels || []
 }
 
-const getChannelColor = (type) => {
-  const ct = channelTypes.find(c => c.type === type)
-  return ct?.color || 'grey'
-}
-
 const getChannelTypeName = (type) => {
   const ct = channelTypes.find(c => c.type === type)
   return ct?.name || type
@@ -486,14 +463,14 @@ const editChannel = (type, channel) => {
 }
 
 const deleteChannel = async (type, name) => {
-  if (!confirm(`Delete channel "${name}"?`)) return
+  if (!confirm(t('channels.deleteConfirm', { name }))) return
   
   const channels = uploadConfig.value[type]?.channels || []
   const index = channels.findIndex(c => c.name === name)
   if (index >= 0) {
     channels.splice(index, 1)
     await saveConfig()
-    showMessage('Channel deleted', 'success')
+    showMessage(t('channels.deleteSuccess'), 'success')
   }
 }
 
@@ -507,22 +484,20 @@ const saveChannel = async () => {
     const channels = uploadConfig.value[type]?.channels || []
     
     if (editingChannel.value) {
-      // Update existing
       const index = channels.findIndex(c => c.name === editingChannel.value.name)
       if (index >= 0) {
         channels[index] = { ...channelForm.value }
       }
     } else {
-      // Add new
       channels.push({ ...channelForm.value })
     }
     
     uploadConfig.value[type].channels = channels
     await saveConfig()
     closeDialog()
-    showMessage(editingChannel.value ? 'Channel updated' : 'Channel added', 'success')
+    showMessage(t('channels.saveSuccess'), 'success')
   } catch (error) {
-    showMessage('Failed to save channel', 'error')
+    showMessage(t('settings.saveFailed'), 'error')
   } finally {
     saving.value = false
   }
