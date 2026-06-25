@@ -21,10 +21,11 @@
         </div>
       </div>
 
-      <v-divider class="mb-2" />
+      <v-divider />
 
-      <!-- 主导航 -->
-      <v-list nav density="comfortable" class="px-2">
+      <!-- 导航菜单 - 统一列表 -->
+      <v-list nav density="comfortable" class="d-flex flex-column fill-height px-2 py-2">
+        <!-- 主导航 -->
         <v-list-item
           v-if="isLoggedIn"
           to="/"
@@ -50,16 +51,12 @@
           </template>
           <v-list-item-title>管理后台</v-list-item-title>
         </v-list-item>
-      </v-list>
 
-      <v-spacer />
-
-      <!-- 底部操作 -->
-      <v-list nav density="comfortable" class="px-2 pb-4">
         <v-list-item
           to="/help"
           :active="$route.path === '/help'"
           rounded="lg"
+          color="primary"
         >
           <template #prepend>
             <v-icon>mdi-help-circle-outline</v-icon>
@@ -67,6 +64,10 @@
           <v-list-item-title>配置说明</v-list-item-title>
         </v-list-item>
 
+        <!-- 弹性空间 -->
+        <div class="flex-grow-1"></div>
+
+        <!-- 底部操作 -->
         <v-list-item
           @click="toggleTheme"
           rounded="lg"
