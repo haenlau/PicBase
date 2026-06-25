@@ -111,10 +111,10 @@ export async function getOthersConfig(db, env) {
         fixed: false,
     }
 
-    // 公开浏览
+    // 公开浏览 - 默认启用
     const kvPublicBrowse = settingsKV.publicBrowse || {}
     settings.publicBrowse = {
-        enabled: kvPublicBrowse.enabled ?? false,
+        enabled: kvPublicBrowse.enabled ?? true,
         allowedDir: kvPublicBrowse.allowedDir || '',
         fixed: false,
     }

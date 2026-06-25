@@ -28,13 +28,13 @@ const routes = [
     path: '/browse',
     name: 'Browse',
     component: () => import('@/views/Browse.vue'),
-    meta: { layout: 'user', requiresAuth: true }
+    meta: { layout: 'user', requiresAuth: false }
   },
   {
     path: '/file/:path(.*)',
     name: 'FileView',
     component: () => import('@/views/Browse.vue'),
-    meta: { layout: 'user', requiresAuth: true }
+    meta: { layout: 'user', requiresAuth: false }
   },
   {
     path: '/admin',

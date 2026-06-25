@@ -423,6 +423,9 @@
               <v-divider />
               <v-list density="compact">
                 <v-list-item>
+                  <template #prepend>
+                    <v-icon size="small" color="primary">mdi-link-variant</v-icon>
+                  </template>
                   <v-list-item-title class="text-caption">Direct Link</v-list-item-title>
                   <v-list-item-subtitle class="text-truncate">{{ getDirectLink(selectedFile) }}</v-list-item-subtitle>
                   <template #append>
@@ -432,6 +435,9 @@
                   </template>
                 </v-list-item>
                 <v-list-item>
+                  <template #prepend>
+                    <v-icon size="small" color="success">mdi-language-markdown</v-icon>
+                  </template>
                   <v-list-item-title class="text-caption">Markdown</v-list-item-title>
                   <v-list-item-subtitle class="text-truncate">{{ getMarkdownLink(selectedFile) }}</v-list-item-subtitle>
                   <template #append>
@@ -441,10 +447,25 @@
                   </template>
                 </v-list-item>
                 <v-list-item>
+                  <template #prepend>
+                    <v-icon size="small" color="info">mdi-language-html5</v-icon>
+                  </template>
                   <v-list-item-title class="text-caption">HTML</v-list-item-title>
                   <v-list-item-subtitle class="text-truncate">{{ getHtmlLink(selectedFile) }}</v-list-item-subtitle>
                   <template #append>
                     <v-btn size="small" variant="text" @click="copyText(getHtmlLink(selectedFile))">
+                      <v-icon>mdi-content-copy</v-icon>
+                    </v-btn>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <template #prepend>
+                    <v-icon size="small" color="warning">mdi-code-brackets</v-icon>
+                  </template>
+                  <v-list-item-title class="text-caption">BBCode</v-list-item-title>
+                  <v-list-item-subtitle class="text-truncate">{{ getBBCodeLink(selectedFile) }}</v-list-item-subtitle>
+                  <template #append>
+                    <v-btn size="small" variant="text" @click="copyText(getBBCodeLink(selectedFile))">
                       <v-icon>mdi-content-copy</v-icon>
                     </v-btn>
                   </template>
@@ -635,6 +656,10 @@ const getMarkdownLink = (file) => {
 
 const getHtmlLink = (file) => {
   return `<img src="${getDirectLink(file)}" alt="${file.name}" />`
+}
+
+const getBBCodeLink = (file) => {
+  return `[img]${getDirectLink(file)}[/img]`
 }
 
 const copyLink = async (file) => {

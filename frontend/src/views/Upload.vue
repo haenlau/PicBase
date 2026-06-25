@@ -256,7 +256,10 @@
     <v-dialog v-model="showLinkFormatDialog" max-width="500">
       <v-card v-if="linkDialogFile">
         <v-card-title class="d-flex align-center justify-space-between">
-          <span>Copy Link</span>
+          <span>
+            <v-icon class="mr-2">mdi-link</v-icon>
+            Copy Link
+          </span>
           <v-btn icon variant="text" @click="showLinkFormatDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -265,6 +268,9 @@
         <v-card-text>
           <v-list>
             <v-list-item>
+              <template #prepend>
+                <v-icon color="primary">mdi-link-variant</v-icon>
+              </template>
               <v-list-item-title class="text-caption font-weight-bold">Direct Link</v-list-item-title>
               <v-list-item-subtitle class="text-truncate">{{ getDirectLink(linkDialogFile) }}</v-list-item-subtitle>
               <template #append>
@@ -276,6 +282,9 @@
             </v-list-item>
             <v-divider />
             <v-list-item>
+              <template #prepend>
+                <v-icon color="success">mdi-language-markdown</v-icon>
+              </template>
               <v-list-item-title class="text-caption font-weight-bold">Markdown</v-list-item-title>
               <v-list-item-subtitle class="text-truncate">{{ getMarkdownLink(linkDialogFile) }}</v-list-item-subtitle>
               <template #append>
@@ -287,10 +296,27 @@
             </v-list-item>
             <v-divider />
             <v-list-item>
+              <template #prepend>
+                <v-icon color="info">mdi-language-html5</v-icon>
+              </template>
               <v-list-item-title class="text-caption font-weight-bold">HTML</v-list-item-title>
               <v-list-item-subtitle class="text-truncate">{{ getHtmlLink(linkDialogFile) }}</v-list-item-subtitle>
               <template #append>
                 <v-btn size="small" variant="tonal" @click="copyText(getHtmlLink(linkDialogFile))">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copy
+                </v-btn>
+              </template>
+            </v-list-item>
+            <v-divider />
+            <v-list-item>
+              <template #prepend>
+                <v-icon color="warning">mdi-code-brackets</v-icon>
+              </template>
+              <v-list-item-title class="text-caption font-weight-bold">BBCode</v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">{{ getBBCodeLink(linkDialogFile) }}</v-list-item-subtitle>
+              <template #append>
+                <v-btn size="small" variant="tonal" @click="copyText(getBBCodeLink(linkDialogFile))">
                   <v-icon start size="small">mdi-content-copy</v-icon>
                   Copy
                 </v-btn>
@@ -433,6 +459,13 @@ const clearFiles = () => {
 
 const uploadAll = async () => {
   await uploadStore.uploadAll()
+  
+  // 上传完成后，自动弹出第一个成功文件的链接弹窗
+  const completedFile = files.value.find(f => f.status === 'completed' && f.url)
+  if (completedFile) {
+    showLinkDialog(completedFile)
+  }
+  
   showMessage(t('upload.uploadComplete'), 'success')
 }
 
@@ -460,6 +493,10 @@ const getMarkdownLink = (file) => {
 
 const getHtmlLink = (file) => {
   return `<img src="${getDirectLink(file)}" alt="${file.name}" />`
+}
+
+const getBBCodeLink = (file) => {
+  return `[img]${getDirectLink(file)}[/img]`
 }
 
 const copyText = async (text) => {
