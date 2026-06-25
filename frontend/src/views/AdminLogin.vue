@@ -15,7 +15,6 @@
             v-model="username"
             :label="t('auth.username')"
             prepend-inner-icon="mdi-account"
-            :rules="usernameRules"
             :disabled="loading"
             autofocus
             class="mb-2"
@@ -28,7 +27,6 @@
             prepend-inner-icon="mdi-lock"
             :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
             @click:append-inner="showPassword = !showPassword"
-            :rules="passwordRules"
             :disabled="loading"
             class="mb-4"
           />
@@ -50,9 +48,21 @@
             size="large"
             color="primary"
             :loading="loading"
-            class="mb-4"
+            class="mb-2"
           >
             {{ t('auth.login') }}
+          </v-btn>
+
+          <v-btn
+            block
+            size="large"
+            variant="tonal"
+            color="warning"
+            :loading="resetLoading"
+            @click="handleReset"
+            class="mb-4"
+          >
+            {{ t('auth.resetPassword') }}
           </v-btn>
         </v-form>
       </v-card-text>
@@ -67,6 +77,38 @@
         </v-btn>
       </v-card-actions>
     </v-card>
+
+    <!-- Reset Dialog -->
+    <v-dialog v-model="showResetDialog" max-width="400">
+      <v-card>
+        <v-card-title>{{ t('auth.resetPassword') }}</v-card-title>
+        <v-card-text>
+          <p>{{ t('auth.resetPasswordConfirm') }}</p>
+          <v-alert v-if="resetSuccess" type="success" class="mt-4">
+            {{ t('auth.resetPasswordSuccess') }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="showResetDialog = false">Close</v-btn>
+          <v-btn 
+            v-if="!resetSuccess"
+            color="warning" 
+            @click="confirmReset"
+            :loading="resetLoading"
+          >
+            {{ t('common.confirm') }}
+          </v-btn>
+          <v-btn 
+            v-else
+            color="primary" 
+            @click="handleResetSuccess"
+          >
+            {{ t('auth.login') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </AuthLayout>
 </template>
 
@@ -75,6 +117,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/utils/axios'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 
 const router = useRouter()
@@ -88,19 +131,11 @@ const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
 const error = ref('')
-
-const usernameRules = [
-  v => !!v || t('auth.enterUsername')
-]
-
-const passwordRules = [
-  v => !!v || t('auth.enterPassword')
-]
+const resetLoading = ref(false)
+const showResetDialog = ref(false)
+const resetSuccess = ref(false)
 
 const handleLogin = async () => {
-  const { valid } = await formRef.value.validate()
-  if (!valid) return
-
   loading.value = true
   error.value = ''
 
@@ -114,5 +149,29 @@ const handleLogin = async () => {
   }
 
   loading.value = false
+}
+
+const handleReset = () => {
+  resetSuccess.value = false
+  showResetDialog.value = true
+}
+
+const confirmReset = async () => {
+  resetLoading.value = true
+  try {
+    await api.post('/api/auth/resetSecurity')
+    resetSuccess.value = true
+  } catch (err) {
+    error.value = 'Failed to reset: ' + (err.response?.data?.message || err.message)
+    showResetDialog.value = false
+  } finally {
+    resetLoading.value = false
+  }
+}
+
+const handleResetSuccess = () => {
+  showResetDialog.value = false
+  // Reload to clear any cached state
+  window.location.reload()
 }
 </script>

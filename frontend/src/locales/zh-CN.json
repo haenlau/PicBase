@@ -49,7 +49,10 @@
     "enterAuthCode": "请输入访问码",
     "loginFailed": "登录失败",
     "unauthorized": "未授权",
-    "sessionExpired": "会话已过期"
+    "sessionExpired": "会话已过期",
+    "resetPassword": "重置密码",
+    "resetPasswordConfirm": "这将重置所有安全设置，包括管理员用户名和密码。重置后可以无需凭据直接登录。是否继续？",
+    "resetPasswordSuccess": "安全设置已重置成功。现在可以无需凭据直接登录。"
   },
   "upload": {
     "title": "上传文件",

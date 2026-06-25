@@ -49,7 +49,10 @@
     "enterAuthCode": "Enter access code",
     "loginFailed": "Login failed",
     "unauthorized": "Unauthorized",
-    "sessionExpired": "Session expired"
+    "sessionExpired": "Session expired",
+    "resetPassword": "Reset Password",
+    "resetPasswordConfirm": "This will reset all security settings including admin username and password. You will be able to login without credentials. Continue?",
+    "resetPasswordSuccess": "Security settings have been reset successfully. You can now login without credentials."
   },
   "upload": {
     "title": "Upload Files",
