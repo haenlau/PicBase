@@ -62,12 +62,12 @@ function extractRequiredPermission(pathname) {
   return 'manage';
 }
 
-// CORS 跨域响应头
+// CORS 跨域响应头 - 安全设置
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, PUT, PATCH, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Max-Age': '86400',
+  'X-Content-Type-Options': 'nosniff',
 };
 
 async function authentication(context) {

@@ -54,15 +54,48 @@ export const FILE_CACHE_CONTROL = {
     NO_STORE: 'private, no-store, max-age=0',
 };
 
+// 危险的文件扩展名 - 强制下载
+const DANGEROUS_EXTENSIONS = ['.html', '.htm', '.xhtml', '.svg', '.xml', '.js', '.mjs'];
+
 // 公共响应头设置函数
 export function setCommonHeaders(headers, encodedFileName, fileType, cacheControl = FILE_CACHE_CONTROL.PUBLIC) {
-    headers.set('Content-Disposition', `inline; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
-    headers.set('Access-Control-Allow-Origin', '*');
+    // 安全头 - 防止MIME嗅探
+    headers.set('X-Content-Type-Options', 'nosniff');
+    
+    // 安全头 - 防止点击劫持
+    headers.set('X-Frame-Options', 'SAMEORIGIN');
+    
+    // 安全头 - XSS保护
+    headers.set('X-XSS-Protection', '1; mode=block');
+    
+    // 安全头 - Referrer策略
+    headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    
+    // 安全头 - 权限策略
+    headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+    // 检查是否为危险文件类型
+    const fileName = decodeURIComponent(encodedFileName);
+    const ext = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
+    const isDangerous = DANGEROUS_EXTENSIONS.includes(ext);
+    
+    // 对于危险文件类型，强制下载而不是内联显示
+    if (isDangerous) {
+        headers.set('Content-Disposition', `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
+    } else {
+        headers.set('Content-Disposition', `inline; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
+    }
+    
     headers.set('Accept-Ranges', 'bytes');
     headers.set('Vary', 'Range');
 
     if (fileType) {
-        headers.set('Content-Type', fileType);
+        // 对于SVG，确保使用正确的MIME类型
+        if (ext === '.svg') {
+            headers.set('Content-Type', 'image/svg+xml');
+        } else {
+            headers.set('Content-Type', fileType);
+        }
     }
 
     headers.set('Cache-Control', cacheControl || FILE_CACHE_CONTROL.PUBLIC);
@@ -83,9 +116,13 @@ export function handleHeadRequest(headers, etag = null) {
     responseHeaders.set('Content-Length', headers.get('Content-Length') || '0');
     responseHeaders.set('Content-Type', headers.get('Content-Type') || 'application/octet-stream');
     responseHeaders.set('Content-Disposition', headers.get('Content-Disposition') || 'inline');
-    responseHeaders.set('Access-Control-Allow-Origin', headers.get('Access-Control-Allow-Origin') || '*');
     responseHeaders.set('Accept-Ranges', headers.get('Accept-Ranges') || 'bytes');
     responseHeaders.set('Cache-Control', headers.get('Cache-Control') || 'public, max-age=2592000');
+    
+    // 安全头
+    responseHeaders.set('X-Content-Type-Options', 'nosniff');
+    responseHeaders.set('X-Frame-Options', 'SAMEORIGIN');
+    responseHeaders.set('X-XSS-Protection', '1; mode=block');
 
     if (etag) {
         responseHeaders.set('ETag', etag);

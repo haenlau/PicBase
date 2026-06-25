@@ -13,6 +13,7 @@ import { HuggingFaceAPI } from "../utils/storage/huggingfaceAPI.js";
 import { WebDAVAPI } from "../utils/storage/webdavAPI.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getDatabase } from '../utils/databaseAdapter.js';
+import { validateAndSanitizeFile } from '../utils/security.js';
 
 
 export async function onRequest(context) {  // Contents of context object
@@ -142,6 +143,14 @@ async function processFileUpload(context, formdata = null) {
     if (fileType === null || fileType === undefined || fileName === null || fileName === undefined) {
         return createResponse('Error: fileType or fileName is wrong, check the integrity of this file!', { status: 400 });
     }
+
+    // 文件类型安全校验
+    const fileValidation = await validateAndSanitizeFile(file);
+    if (!fileValidation.valid) {
+        return createResponse(`Error: ${fileValidation.error}`, { status: 400 });
+    }
+    // 如果文件被清理过（如SVG），使用清理后的文件
+    const validatedFile = fileValidation.file || file;
 
     // 提取图片尺寸
     let imageDimensions = null;
