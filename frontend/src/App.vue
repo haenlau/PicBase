@@ -57,6 +57,17 @@
       <!-- 底部操作 -->
       <v-list nav density="comfortable" class="px-2 pb-4">
         <v-list-item
+          to="/help"
+          :active="$route.path === '/help'"
+          rounded="lg"
+        >
+          <template #prepend>
+            <v-icon>mdi-help-circle-outline</v-icon>
+          </template>
+          <v-list-item-title>配置说明</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
           @click="toggleTheme"
           rounded="lg"
         >
