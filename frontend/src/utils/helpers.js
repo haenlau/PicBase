@@ -1,9 +1,44 @@
 export const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 B'
+  if (bytes === 0 || bytes === undefined || bytes === null) return '0 B'
+  
+  // 确保 bytes 是数字
+  const numBytes = typeof bytes === 'string' ? parseFloat(bytes) : bytes
+  if (isNaN(numBytes)) return '0 B'
+  
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  const i = Math.floor(Math.log(Math.abs(numBytes)) / Math.log(k))
+  const index = Math.min(i, sizes.length - 1)
+  
+  return parseFloat((numBytes / Math.pow(k, index)).toFixed(2)) + ' ' + sizes[index]
+}
+
+/**
+ * 从后端返回的FileSize字符串解析字节数
+ * 后端存储的FileSize可能是 "2.5" (MB) 或 "2.5MB" 格式
+ */
+export const parseFileSize = (sizeStr, sizeBytes) => {
+  // 优先使用 FileSizeBytes 字段
+  if (sizeBytes) {
+    const num = typeof sizeBytes === 'string' ? parseFloat(sizeBytes) : sizeBytes
+    if (!isNaN(num) && num > 0) return num
+  }
+  
+  // 解析 FileSize 字段
+  if (!sizeStr) return 0
+  
+  const str = sizeStr.toString()
+  const numMatch = str.match(/[\d.]+/)
+  if (!numMatch) return 0
+  
+  const num = parseFloat(numMatch[0])
+  if (isNaN(num)) return 0
+  
+  // 如果数字小于1000，假设是MB单位
+  if (num < 1000) {
+    return num * 1024 * 1024
+  }
+  return num
 }
 
 export const formatDate = (timestamp) => {

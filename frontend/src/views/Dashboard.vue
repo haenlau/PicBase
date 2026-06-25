@@ -495,7 +495,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { manageApi } from '@/api'
-import { formatFileSize, formatDateTime, formatDate, copyToClipboard } from '@/utils/helpers'
+import { formatFileSize, parseFileSize, formatDateTime, formatDate, copyToClipboard } from '@/utils/helpers'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 const { t } = useI18n()
@@ -608,20 +608,7 @@ const clearSearch = () => {
 
 // 从 metadata 中获取文件大小
 const getFileSize = (file) => {
-  const sizeStr = file.metadata?.FileSize
-  if (!sizeStr) return 0
-  
-  // 解析 "2.5" 或 "2.5MB" 格式
-  const numMatch = sizeStr.toString().match(/[\d.]+/)
-  if (numMatch) {
-    const num = parseFloat(numMatch[0])
-    // 如果数字小于1000，假设是MB单位
-    if (num < 1000) {
-      return num * 1024 * 1024
-    }
-    return num
-  }
-  return 0
+  return parseFileSize(file.metadata?.FileSize, file.metadata?.FileSizeBytes)
 }
 
 const isImage = (file) => {

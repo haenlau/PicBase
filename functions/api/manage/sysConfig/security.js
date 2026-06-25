@@ -31,6 +31,12 @@ export async function onRequest(context) {
             maskedSettings.auth.admin._hasPassword = true;
             maskedSettings.auth.admin.adminPassword = ''; // 不向前端暴露密码/哈希
         }
+        
+        // 隐藏敏感的API密钥
+        if (maskedSettings.upload?.moderate?.moderateContentApiKey) {
+            maskedSettings.upload.moderate._hasApiKey = true;
+            maskedSettings.upload.moderate.moderateContentApiKey = '';
+        }
 
         return new Response(JSON.stringify(maskedSettings), {
             headers: {

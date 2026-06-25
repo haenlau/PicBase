@@ -7,6 +7,9 @@ const SENSITIVE_METADATA_KEYS = [
   'WebDAVUsername',
   'WebDAVPassword',
   'WebDAVHeaders',
+  // 以下字段包含敏感的用户信息
+  'UploadIP',        // 上传者IP地址
+  'UploadAddress',   // 上传者地理位置
 ];
 
 const CONFIG_DERIVED_METADATA_KEYS = [
