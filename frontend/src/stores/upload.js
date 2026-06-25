@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/utils/axios'
+import { compressImage } from '@/utils/imageCompression'
 
 export const useUploadStore = defineStore('upload', () => {
   const files = ref([])
@@ -25,18 +26,35 @@ export const useUploadStore = defineStore('upload', () => {
     }
   }
 
-  const addFiles = (newFiles) => {
-    const fileObjects = Array.from(newFiles).map(file => ({
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      file,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      status: 'pending',
-      progress: 0,
-      url: null,
-      error: null
-    }))
+  const addFiles = async (newFiles) => {
+    const fileObjects = []
+    
+    for (const file of newFiles) {
+      // 压缩图片
+      let processedFile = file
+      if (file.type.startsWith('image/') && file.type !== 'image/gif' && file.type !== 'image/svg+xml') {
+        try {
+          processedFile = await compressImage(file, { quality: 0.8 })
+        } catch (e) {
+          console.warn('Compression failed, using original:', e)
+        }
+      }
+
+      fileObjects.push({
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        file: processedFile,
+        name: file.name,
+        originalSize: file.size,
+        size: processedFile.size,
+        type: file.type,
+        status: 'pending',
+        progress: 0,
+        url: null,
+        error: null,
+        compressed: processedFile.size < file.size
+      })
+    }
+    
     files.value.push(...fileObjects)
   }
 
