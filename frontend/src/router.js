@@ -4,7 +4,8 @@ const routes = [
   {
     path: '/',
     name: 'Upload',
-    component: () => import('./views/Upload.vue')
+    component: () => import('./views/Upload.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -29,22 +30,32 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
+// 路由守卫 - 检查登录状态
 router.beforeEach(async (to, from, next) => {
-  if (to.meta.requiresAuth) {
-    try {
-      const res = await fetch('/api/auth/sessionCheck')
-      const data = await res.json()
-      if (data.valid && data.authType === 'admin') {
-        next()
-      } else {
-        next('/login')
-      }
-    } catch {
+  // 登录页面不需要认证
+  if (to.path === '/login') {
+    next()
+    return
+  }
+  
+  // 404页面不需要认证
+  if (to.name === 'NotFound') {
+    next()
+    return
+  }
+  
+  // 其他页面需要认证
+  try {
+    const res = await fetch('/api/auth/sessionCheck')
+    const data = await res.json()
+    
+    if (data.valid) {
+      next()
+    } else {
       next('/login')
     }
-  } else {
-    next()
+  } catch {
+    next('/login')
   }
 })
 

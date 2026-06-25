@@ -1,115 +1,164 @@
 <template>
-  <div class="admin-page">
-    <div class="container">
-      <!-- 标签页 -->
-      <div class="tabs glass">
-        <button 
-          v-for="tab in tabs" 
-          :key="tab.id"
-          class="tab" 
-          :class="{ active: activeTab === tab.id }"
-          @click="activeTab = tab.id"
-        >
-          <span class="material-icons-outlined">{{ tab.icon }}</span>
-          {{ tab.label }}
-        </button>
-      </div>
+  <v-container>
+    <!-- 标签页 -->
+    <v-tabs v-model="activeTab" color="primary" class="mb-6">
+      <v-tab value="files">
+        <v-icon start>mdi-folder</v-icon>
+        文件管理
+      </v-tab>
+      <v-tab value="channels">
+        <v-icon start>mdi-cloud</v-icon>
+        渠道配置
+      </v-tab>
+      <v-tab value="security">
+        <v-icon start>mdi-shield</v-icon>
+        安全设置
+      </v-tab>
+    </v-tabs>
 
+    <v-tabs-window v-model="activeTab">
       <!-- 文件管理 -->
-      <div v-if="activeTab === 'files'" class="tab-content">
+      <v-tabs-window-item value="files">
         <!-- 工具栏 -->
-        <div class="toolbar glass">
-          <div class="toolbar-left">
-            <div class="search-box">
-              <span class="material-icons-outlined">search</span>
-              <input class="input" v-model="searchQuery" placeholder="搜索文件..." @input="debouncedSearch" />
-            </div>
-            <select class="select" v-model="filterChannel" style="width: auto; min-width: 150px;">
-              <option value="">全部渠道</option>
-              <option v-for="ch in channelOptions" :key="ch" :value="ch">{{ ch }}</option>
-            </select>
-            <select class="select" v-model="filterType" style="width: auto; min-width: 120px;">
-              <option value="">全部类型</option>
-              <option value="image">图片</option>
-              <option value="video">视频</option>
-              <option value="audio">音频</option>
-              <option value="document">文档</option>
-            </select>
-          </div>
-          <div class="toolbar-right">
-            <button class="btn-icon" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="网格">
-              <span class="material-icons-outlined">grid_view</span>
-            </button>
-            <button class="btn-icon" :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'" title="列表">
-              <span class="material-icons-outlined">view_list</span>
-            </button>
-            <button class="btn-icon" @click="fetchFiles" title="刷新">
-              <span class="material-icons-outlined">refresh</span>
-            </button>
-          </div>
-        </div>
+        <v-card class="mb-4">
+          <v-card-text>
+            <v-row align="center">
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="searchQuery"
+                  label="搜索文件"
+                  prepend-inner-icon="mdi-magnify"
+                  clearable
+                  density="compact"
+                  hide-details
+                  @update:model-value="debouncedSearch"
+                />
+              </v-col>
+              <v-col cols="12" md="8">
+                <div class="d-flex align-center flex-wrap ga-2 justify-end">
+                  <v-select
+                    v-model="filterChannel"
+                    :items="channelOptions"
+                    label="渠道"
+                    density="compact"
+                    hide-details
+                    style="min-width: 150px"
+                  />
+                  <v-btn-toggle v-model="viewMode" mandatory density="compact">
+                    <v-btn value="grid" icon>
+                      <v-icon>mdi-view-grid</v-icon>
+                    </v-btn>
+                    <v-btn value="list" icon>
+                      <v-icon>mdi-view-list</v-icon>
+                    </v-btn>
+                  </v-btn-toggle>
+                  <v-btn icon variant="text" @click="fetchFiles">
+                    <v-icon>mdi-refresh</v-icon>
+                  </v-btn>
+                </div>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
 
         <!-- 批量操作 -->
-        <div class="batch-bar glass" v-if="selectedFiles.length > 0">
-          <span>已选择 {{ selectedFiles.length }} 项</span>
-          <div class="batch-actions">
-            <button class="btn btn-sm btn-secondary" @click="copySelectedLinks">
-              <span class="material-icons-outlined">link</span>
-              复制链接
-            </button>
-            <button class="btn btn-sm btn-error" @click="confirmBatchDelete">
-              <span class="material-icons-outlined">delete</span>
-              删除
-            </button>
-            <button class="btn btn-sm btn-secondary" @click="selectedFiles = []">
-              取消选择
-            </button>
-          </div>
-        </div>
+        <v-slide-y-transition>
+          <v-card v-if="selectedFiles.length > 0" class="mb-4" color="primary" variant="tonal">
+            <v-card-text class="d-flex align-center justify-space-between">
+              <span>已选择 {{ selectedFiles.length }} 项</span>
+              <div>
+                <v-btn variant="text" size="small" class="mr-2" @click="copySelectedLinks">
+                  <v-icon start>mdi-link</v-icon>
+                  复制链接
+                </v-btn>
+                <v-btn variant="text" size="small" color="error" @click="confirmBatchDelete">
+                  <v-icon start>mdi-delete</v-icon>
+                  删除
+                </v-btn>
+                <v-btn variant="text" size="small" @click="selectedFiles = []">
+                  取消
+                </v-btn>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-slide-y-transition>
 
         <!-- 网格视图 -->
-        <div v-if="viewMode === 'grid'" class="file-grid">
-          <div 
-            v-for="file in files" 
+        <v-row v-if="viewMode === 'grid'">
+          <v-col v-if="loading" v-for="n in 8" :key="n" cols="6" sm="4" md="3" lg="2">
+            <v-skeleton-loader type="card" />
+          </v-col>
+          
+          <v-col
+            v-for="file in files"
             :key="file.name"
-            class="file-card glass-card"
-            :class="{ selected: isSelected(file) }"
-            @click="toggleSelect(file)"
+            cols="6"
+            sm="4"
+            md="3"
+            lg="2"
           >
-            <div class="file-preview">
-              <img v-if="isImage(file)" :src="getFileUrl(file)" @error="e => e.target.style.display = 'none'" />
-              <div v-else class="file-icon-large" :style="{ color: getfileTypeColor(file) }">
-                <span class="material-icons-outlined">{{ getFileTypeIcon(file) }}</span>
+            <v-card
+              class="file-card"
+              :class="{ 'file-card--selected': isSelected(file) }"
+              @click="toggleSelect(file)"
+            >
+              <div class="file-preview">
+                <v-img
+                  v-if="isImage(file)"
+                  :src="getFileUrl(file)"
+                  height="120"
+                  cover
+                >
+                  <template #error>
+                    <div class="d-flex align-center justify-center h-100">
+                      <v-icon size="48" color="grey">mdi-image-broken</v-icon>
+                    </div>
+                  </template>
+                </v-img>
+                <div v-else class="d-flex align-center justify-center" style="height: 120px">
+                  <v-icon size="48" :color="getFileTypeColor(file)">
+                    {{ getFileTypeIcon(file) }}
+                  </v-icon>
+                </div>
+                <v-checkbox
+                  :model-value="isSelected(file)"
+                  @click.stop
+                  @update:model-value="toggleSelect(file)"
+                  hide-details
+                  density="compact"
+                  class="file-checkbox"
+                />
               </div>
-              <div class="file-checkbox">
-                <input type="checkbox" :checked="isSelected(file)" @click.stop />
-              </div>
-            </div>
-            <div class="file-card-info">
-              <div class="file-card-name">{{ file.name }}</div>
-              <div class="file-card-meta">
-                <span class="tag">{{ file.metadata?.Channel || '-' }}</span>
-                <span>{{ formatTime(file.metadata?.TimeStamp) }}</span>
-              </div>
-            </div>
-            <div class="file-card-actions" @click.stop>
-              <button class="btn-icon" @click="showLink(file)" title="复制链接">
-                <span class="material-icons-outlined">link</span>
-              </button>
-              <button class="btn-icon" @click="confirmDelete(file)" title="删除">
-                <span class="material-icons-outlined">delete_outline</span>
-              </button>
-            </div>
-          </div>
-        </div>
+              <v-card-text class="pa-2">
+                <p class="text-caption text-truncate">{{ file.name }}</p>
+                <p class="text-caption text-medium-emphasis">
+                  {{ file.metadata?.Channel || '-' }}
+                </p>
+              </v-card-text>
+              <v-card-actions class="pa-1 justify-end">
+                <v-btn icon size="x-small" variant="text" @click.stop="showLink(file)">
+                  <v-icon size="small">mdi-link</v-icon>
+                </v-btn>
+                <v-btn icon size="x-small" variant="text" color="error" @click.stop="confirmDelete(file)">
+                  <v-icon size="small">mdi-delete-outline</v-icon>
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-col>
+        </v-row>
 
         <!-- 列表视图 -->
-        <div v-else class="file-table glass">
-          <table>
+        <v-card v-else>
+          <v-table>
             <thead>
               <tr>
                 <th width="40">
-                  <input type="checkbox" :checked="allSelected" @change="toggleSelectAll" />
+                  <v-checkbox
+                    :model-value="allSelected"
+                    @update:model-value="toggleSelectAll"
+                    hide-details
+                    density="compact"
+                  />
                 </th>
                 <th>文件名</th>
                 <th width="100">渠道</th>
@@ -118,138 +167,217 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="file in files" :key="file.name" :class="{ selected: isSelected(file) }">
-                <td>
-                  <input type="checkbox" :checked="isSelected(file)" @change="toggleSelect(file)" />
+              <tr v-if="loading">
+                <td colspan="5" class="text-center py-8">
+                  <v-progress-circular indeterminate color="primary" />
+                </td>
+              </tr>
+              <tr
+                v-for="file in files"
+                :key="file.name"
+                :class="{ 'bg-primary-lighten-4': isSelected(file) }"
+                @click="toggleSelect(file)"
+                style="cursor: pointer"
+              >
+                <td @click.stop>
+                  <v-checkbox
+                    :model-value="isSelected(file)"
+                    @update:model-value="toggleSelect(file)"
+                    hide-details
+                    density="compact"
+                  />
                 </td>
                 <td>
-                  <div class="file-name-cell">
-                    <span class="material-icons-outlined" :style="{ color: getfileTypeColor(file) }">
+                  <div class="d-flex align-center ga-2">
+                    <v-icon :color="getFileTypeColor(file)" size="20">
                       {{ getFileTypeIcon(file) }}
-                    </span>
-                    <span class="truncate">{{ file.name }}</span>
+                    </v-icon>
+                    <span class="text-truncate">{{ file.name }}</span>
                   </div>
                 </td>
                 <td>
-                  <span class="tag">{{ file.metadata?.Channel || '-' }}</span>
+                  <v-chip size="small" variant="tonal">
+                    {{ file.metadata?.Channel || '-' }}
+                  </v-chip>
                 </td>
-                <td class="text-muted">{{ formatTime(file.metadata?.TimeStamp) }}</td>
-                <td>
-                  <div class="table-actions">
-                    <button class="btn-icon" @click="showLink(file)" title="复制链接">
-                      <span class="material-icons-outlined">link</span>
-                    </button>
-                    <button class="btn-icon" @click="confirmDelete(file)" title="删除">
-                      <span class="material-icons-outlined">delete_outline</span>
-                    </button>
-                  </div>
+                <td class="text-caption text-medium-emphasis">
+                  {{ formatTime(file.metadata?.TimeStamp) }}
+                </td>
+                <td @click.stop>
+                  <v-btn icon size="small" variant="text" @click="showLink(file)">
+                    <v-icon>mdi-link</v-icon>
+                  </v-btn>
+                  <v-btn icon size="small" variant="text" color="error" @click="confirmDelete(file)">
+                    <v-icon>mdi-delete-outline</v-icon>
+                  </v-btn>
                 </td>
               </tr>
             </tbody>
-          </table>
-        </div>
+          </v-table>
+        </v-card>
 
         <!-- 空状态 -->
-        <div v-if="files.length === 0 && !loading" class="empty-state glass">
-          <span class="material-icons-outlined">folder_open</span>
-          <h3>暂无文件</h3>
-          <p>上传一些文件开始使用吧</p>
-          <router-link to="/" class="btn btn-primary">
-            <span class="material-icons-outlined">cloud_upload</span>
+        <v-card v-if="files.length === 0 && !loading" class="text-center py-12">
+          <v-icon size="64" color="grey" class="mb-4">mdi-folder-open</v-icon>
+          <h3 class="text-h6 text-medium-emphasis mb-2">暂无文件</h3>
+          <p class="text-body-2 text-medium-emphasis mb-4">上传一些文件开始使用吧</p>
+          <v-btn color="primary" to="/">
+            <v-icon start>mdi-cloud-upload</v-icon>
             去上传
-          </router-link>
-        </div>
-
-        <!-- 加载状态 -->
-        <div v-if="loading" class="loading-state">
-          <div class="skeleton glass" v-for="i in 8" :key="i"></div>
-        </div>
+          </v-btn>
+        </v-card>
 
         <!-- 加载更多 -->
-        <div v-if="hasMore && !loading" class="load-more">
-          <button class="btn btn-secondary" @click="loadMore">
-            <span class="material-icons-outlined">expand_more</span>
+        <div v-if="hasMore && !loading" class="text-center mt-4">
+          <v-btn variant="tonal" @click="loadMore">
+            <v-icon start>mdi-chevron-down</v-icon>
             加载更多
-          </button>
+          </v-btn>
         </div>
-      </div>
+      </v-tabs-window-item>
 
       <!-- 渠道配置 -->
-      <div v-if="activeTab === 'channels'" class="tab-content">
-        <div class="channel-list">
-          <div v-for="type in channelTypes" :key="type.id" class="channel-card glass-card">
-            <div class="channel-header">
-              <div class="channel-icon" :style="{ background: type.color }">
-                <span class="material-icons-outlined">{{ type.icon }}</span>
-              </div>
-              <div class="channel-info">
-                <h3>{{ type.name }}</h3>
-                <p>{{ type.description }}</p>
-              </div>
-            </div>
-            <div class="channel-body">
-              <div v-if="getChannelsByType(type.id).length === 0" class="channel-empty">
-                未配置
-              </div>
-              <div v-else class="channel-items">
-                <div v-for="ch in getChannelsByType(type.id)" :key="ch.name" class="channel-item">
-                  <span class="status-dot" :class="{ active: ch.enabled }"></span>
-                  <span>{{ ch.name }}</span>
+      <v-tabs-window-item value="channels">
+        <v-row>
+          <v-col v-for="type in channelTypes" :key="type.id" cols="12" md="6" lg="4">
+            <v-card>
+              <v-card-title class="d-flex align-center">
+                <v-icon :color="type.color" class="mr-2">{{ type.icon }}</v-icon>
+                {{ type.name }}
+              </v-card-title>
+              <v-card-subtitle>{{ type.description }}</v-card-subtitle>
+              <v-divider />
+              <v-card-text>
+                <div v-if="getChannelsByType(type.id).length === 0" class="text-medium-emphasis text-center py-4">
+                  未配置
                 </div>
-              </div>
-              <button class="btn btn-sm btn-secondary" @click="editChannel(type.id)">
-                <span class="material-icons-outlined">add</span>
-                添加
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+                <v-list v-else density="compact">
+                  <v-list-item v-for="ch in getChannelsByType(type.id)" :key="ch.name">
+                    <template #prepend>
+                      <v-icon :color="ch.enabled ? 'success' : 'grey'">
+                        {{ ch.enabled ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                      </v-icon>
+                    </template>
+                    <v-list-item-title>{{ ch.name }}</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer />
+                <v-btn variant="tonal" size="small" @click="showMessage('渠道配置功能开发中', 'info')">
+                  <v-icon start>mdi-plus</v-icon>
+                  添加
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-col>
+        </v-row>
+      </v-tabs-window-item>
 
       <!-- 安全设置 -->
-      <div v-if="activeTab === 'security'" class="tab-content">
-        <div class="settings-card glass">
-          <h3>管理员设置</h3>
-          <div class="settings-form">
-            <div class="form-group">
-              <label>用户名</label>
-              <input class="input" v-model="securitySettings.username" placeholder="留空表示无用户名" />
-            </div>
-            <div class="form-group">
-              <label>密码</label>
-              <input class="input" v-model="securitySettings.password" type="password" placeholder="留空表示不修改" />
-            </div>
-            <button class="btn btn-primary" @click="saveSecurity">
-              <span class="material-icons-outlined">save</span>
-              保存
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <v-tabs-window-item value="security">
+        <v-card max-width="500">
+          <v-card-title>
+            <v-icon class="mr-2">mdi-shield</v-icon>
+            管理员设置
+          </v-card-title>
+          <v-divider />
+          <v-card-text>
+            <v-form @submit.prevent="saveSecurity">
+              <v-text-field
+                v-model="securitySettings.username"
+                label="用户名"
+                prepend-inner-icon="mdi-account"
+                class="mb-2"
+              />
+              <v-text-field
+                v-model="securitySettings.password"
+                label="密码"
+                type="password"
+                prepend-inner-icon="mdi-lock"
+                class="mb-4"
+              />
+              <v-btn type="submit" color="primary">
+                <v-icon start>mdi-content-save</v-icon>
+                保存
+              </v-btn>
+            </v-form>
+          </v-card-text>
+        </v-card>
+      </v-tabs-window-item>
+    </v-tabs-window>
 
     <!-- 链接弹窗 -->
-    <LinkDialog ref="linkDialog" :fileUrl="linkFile.url" :fileName="linkFile.name" />
-    
+    <v-dialog v-model="showLinkDialog" max-width="500">
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between">
+          <div>
+            <v-icon class="mr-2">mdi-link</v-icon>
+            复制链接
+          </div>
+          <v-btn icon variant="text" @click="showLinkDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-divider />
+        <v-card-text>
+          <v-list>
+            <v-list-item v-for="item in linkFormats" :key="item.label">
+              <template #prepend>
+                <v-icon :color="item.color">{{ item.icon }}</v-icon>
+              </template>
+              <v-list-item-title class="text-caption font-weight-bold">
+                {{ item.label }}
+              </v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">
+                {{ item.value }}
+              </v-list-item-subtitle>
+              <template #append>
+                <v-btn
+                  size="small"
+                  variant="tonal"
+                  :color="copiedLabel === item.label ? 'success' : undefined"
+                  @click="copyLink(item)"
+                >
+                  <v-icon start size="small">
+                    {{ copiedLabel === item.label ? 'mdi-check' : 'mdi-content-copy' }}
+                  </v-icon>
+                  {{ copiedLabel === item.label ? '已复制' : '复制' }}
+                </v-btn>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
     <!-- 确认弹窗 -->
-    <ConfirmDialog ref="confirmDialog" :title="confirmTitle" :message="confirmMessage" :type="confirmType" @confirm="handleConfirm" />
-    
-    <!-- Toast -->
-    <Toast ref="toast" />
-  </div>
+    <v-dialog v-model="showConfirm" max-width="400">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon color="error" class="mr-2">mdi-alert</v-icon>
+          {{ confirmTitle }}
+        </v-card-title>
+        <v-card-text>{{ confirmMessage }}</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="showConfirm = false">取消</v-btn>
+          <v-btn color="error" @click="handleConfirm">确定</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Snackbar -->
+    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000">
+      {{ snackbarText }}
+    </v-snackbar>
+  </v-container>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { formatTime, getFileType, getFileIcon, getFileColor, copyToClipboard, debounce } from '@/utils/helpers'
 import api from '@/utils/api'
-import LinkDialog from '@/components/LinkDialog.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import Toast from '@/components/Toast.vue'
-
-const linkDialog = ref(null)
-const confirmDialog = ref(null)
-const toast = ref(null)
 
 const activeTab = ref('files')
 const viewMode = ref('grid')
@@ -258,37 +386,41 @@ const files = ref([])
 const selectedFiles = ref([])
 const searchQuery = ref('')
 const filterChannel = ref('')
-const filterType = ref('')
 const page = ref(0)
 const pageSize = ref(50)
 const hasMore = ref(true)
 const allChannels = ref([])
 
+// 链接弹窗
+const showLinkDialog = ref(false)
 const linkFile = ref({ url: '', name: '' })
+const copiedLabel = ref('')
+
+// 确认弹窗
+const showConfirm = ref(false)
 const confirmTitle = ref('')
 const confirmMessage = ref('')
-const confirmType = ref('warning')
 const confirmAction = ref(null)
 const deleteTarget = ref(null)
 
+// Toast
+const snackbar = ref(false)
+const snackbarText = ref('')
+const snackbarColor = ref('success')
+
+// 安全设置
 const securitySettings = ref({
   username: '',
   password: ''
 })
 
-const tabs = [
-  { id: 'files', label: '文件管理', icon: 'folder' },
-  { id: 'channels', label: '渠道配置', icon: 'cloud' },
-  { id: 'security', label: '安全设置', icon: 'security' }
-]
-
 const channelTypes = [
-  { id: 'telegram', name: 'Telegram', icon: 'telegram', color: '#0088cc', description: '上传到 Telegram 频道' },
-  { id: 'cfr2', name: 'Cloudflare R2', icon: 'cloud', color: '#F38020', description: 'Cloudflare R2 存储' },
-  { id: 's3', name: 'S3 兼容', icon: 'aws', color: '#FF9900', description: 'AWS S3 或兼容服务' },
-  { id: 'discord', name: 'Discord', icon: 'discord', color: '#5865F2', description: '上传到 Discord 频道' },
-  { id: 'huggingface', name: 'HuggingFace', icon: 'face', color: '#FFD21E', description: 'HuggingFace 仓库' },
-  { id: 'webdav', name: 'WebDAV', icon: 'folder_network', color: '#4CAF50', description: 'WebDAV 服务' }
+  { id: 'telegram', name: 'Telegram', icon: 'mdi-telegram', color: '#0088cc', description: '上传到 Telegram 频道' },
+  { id: 'cfr2', name: 'Cloudflare R2', icon: 'mdi-cloud', color: '#F38020', description: 'Cloudflare R2 存储' },
+  { id: 's3', name: 'S3 兼容', icon: 'mdi-aws', color: '#FF9900', description: 'AWS S3 或兼容服务' },
+  { id: 'discord', name: 'Discord', icon: 'mdi-discord', color: '#5865F2', description: '上传到 Discord 频道' },
+  { id: 'huggingface', name: 'HuggingFace', icon: 'mdi-face-man', color: '#FFD21E', description: 'HuggingFace 仓库' },
+  { id: 'webdav', name: 'WebDAV', icon: 'mdi-folder-network', color: '#4CAF50', description: 'WebDAV 服务' }
 ]
 
 const channelOptions = computed(() => {
@@ -296,11 +428,22 @@ const channelOptions = computed(() => {
   files.value.forEach(f => {
     if (f.metadata?.Channel) channels.add(f.metadata.Channel)
   })
-  return Array.from(channels)
+  return ['全部', ...Array.from(channels)]
 })
 
 const allSelected = computed(() => {
   return files.value.length > 0 && selectedFiles.value.length === files.value.length
+})
+
+const linkFormats = computed(() => {
+  const url = linkFile.value.url
+  const name = linkFile.value.name
+  return [
+    { label: '直链', icon: 'mdi-link', color: 'primary', value: url },
+    { label: 'Markdown', icon: 'mdi-language-markdown', color: 'success', value: `![${name}](${url})` },
+    { label: 'HTML', icon: 'mdi-language-html5', color: 'info', value: `<img src="${url}" alt="${name}" />` },
+    { label: 'BBCode', icon: 'mdi-code-brackets', color: 'warning', value: `[img]${url}[/img]` }
+  ]
 })
 
 onMounted(() => {
@@ -308,7 +451,7 @@ onMounted(() => {
   fetchChannels()
 })
 
-watch([filterChannel, filterType], () => {
+watch(filterChannel, () => {
   page.value = 0
   files.value = []
   fetchFiles()
@@ -328,8 +471,7 @@ async function fetchFiles() {
       count: pageSize.value
     }
     if (searchQuery.value) params.search = searchQuery.value
-    if (filterChannel.value) params.channel = filterChannel.value
-    if (filterType.value) params.fileType = filterType.value
+    if (filterChannel.value && filterChannel.value !== '全部') params.channel = filterChannel.value
     
     const data = await api.get('/api/manage/list?' + new URLSearchParams(params))
     
@@ -341,7 +483,7 @@ async function fetchFiles() {
     
     hasMore.value = (data.files || []).length === pageSize.value
   } catch (err) {
-    toast.value?.error('加载失败')
+    showMessage('加载失败', 'error')
   } finally {
     loading.value = false
   }
@@ -386,7 +528,7 @@ function getFileTypeIcon(file) {
   return getFileIcon(type)
 }
 
-function getfileTypeColor(file) {
+function getFileTypeColor(file) {
   const type = getFileType(file.metadata?.FileType, file.name)
   return getFileColor(type)
 }
@@ -417,14 +559,28 @@ function showLink(file) {
     url: window.location.origin + '/file/' + file.name,
     name: file.name
   }
-  linkDialog.value?.show()
+  copiedLabel.value = ''
+  showLinkDialog.value = true
+}
+
+async function copyLink(item) {
+  const success = await copyToClipboard(item.value)
+  if (success) {
+    copiedLabel.value = item.label
+    showMessage('已复制到剪贴板', 'success')
+    setTimeout(() => {
+      if (copiedLabel.value === item.label) {
+        copiedLabel.value = ''
+      }
+    }, 2000)
+  }
 }
 
 async function copySelectedLinks() {
   const links = selectedFiles.value.map(f => window.location.origin + '/file/' + f.name).join('\n')
   const success = await copyToClipboard(links)
   if (success) {
-    toast.value?.success('已复制 ' + selectedFiles.value.length + ' 个链接')
+    showMessage(`已复制 ${selectedFiles.value.length} 个链接`, 'success')
   }
 }
 
@@ -432,21 +588,21 @@ function confirmDelete(file) {
   deleteTarget.value = file
   confirmTitle.value = '删除文件'
   confirmMessage.value = `确定要删除 "${file.name}" 吗？此操作不可恢复。`
-  confirmType.value = 'error'
   confirmAction.value = 'delete'
-  confirmDialog.value?.show()
+  showConfirm.value = true
 }
 
 function confirmBatchDelete() {
   deleteTarget.value = null
   confirmTitle.value = '批量删除'
   confirmMessage.value = `确定要删除选中的 ${selectedFiles.value.length} 个文件吗？此操作不可恢复。`
-  confirmType.value = 'error'
   confirmAction.value = 'batchDelete'
-  confirmDialog.value?.show()
+  showConfirm.value = true
 }
 
 async function handleConfirm() {
+  showConfirm.value = false
+  
   if (confirmAction.value === 'delete' && deleteTarget.value) {
     await deleteFile(deleteTarget.value)
   } else if (confirmAction.value === 'batchDelete') {
@@ -459,9 +615,9 @@ async function deleteFile(file) {
     await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
     files.value = files.value.filter(f => f.name !== file.name)
     selectedFiles.value = selectedFiles.value.filter(f => f.name !== file.name)
-    toast.value?.success('删除成功')
+    showMessage('删除成功', 'success')
   } catch (err) {
-    toast.value?.error('删除失败')
+    showMessage('删除失败', 'error')
   }
 }
 
@@ -478,11 +634,7 @@ async function batchDelete() {
   
   files.value = files.value.filter(f => !selectedFiles.value.some(s => s.name === f.name))
   selectedFiles.value = []
-  toast.value?.success(`成功删除 ${successCount} 个文件`)
-}
-
-function editChannel(type) {
-  toast.value?.info('渠道配置功能开发中')
+  showMessage(`成功删除 ${successCount} 个文件`, 'success')
 }
 
 async function saveSecurity() {
@@ -495,406 +647,42 @@ async function saveSecurity() {
         }
       }
     })
-    toast.value?.success('保存成功')
+    showMessage('保存成功', 'success')
   } catch (err) {
-    toast.value?.error('保存失败')
+    showMessage('保存失败', 'error')
   }
 }
 
-function refresh() {
-  fetchFiles()
-  fetchChannels()
+function showMessage(text, color = 'success') {
+  snackbarText.value = text
+  snackbarColor.value = color
+  snackbar.value = true
 }
-
-defineExpose({ refresh })
 </script>
 
 <style scoped>
-.admin-page {
-  min-height: calc(100vh - 80px);
-  padding: var(--space-xl) 0;
-}
-
-.tabs {
-  display: flex;
-  gap: var(--space-xs);
-  padding: var(--space-xs);
-  margin-bottom: var(--space-lg);
-}
-
-.tab {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-lg);
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: var(--transition-normal);
-  font-size: 14px;
-}
-
-.tab:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.tab.active {
-  background: rgba(255, 255, 255, 0.2);
-  color: var(--text-primary);
-}
-
-.tab .material-icons-outlined {
-  font-size: 18px;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-md);
-  margin-bottom: var(--space-md);
-  flex-wrap: wrap;
-  gap: var(--space-md);
-}
-
-.toolbar-left {
-  display: flex;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  padding: 0 var(--space-md);
-  flex: 1;
-  min-width: 200px;
-}
-
-.search-box .material-icons-outlined {
-  color: var(--text-muted);
-}
-
-.search-box .input {
-  border: none;
-  background: transparent;
-  padding: var(--space-sm) 0;
-}
-
-.toolbar-right {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.btn-icon.active {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.batch-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-md);
-  margin-bottom: var(--space-md);
-  background: rgba(102, 126, 234, 0.2);
-}
-
-.batch-actions {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.file-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-md);
-}
-
 .file-card {
   cursor: pointer;
-  transition: var(--transition-normal);
-  overflow: hidden;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.file-card.selected {
-  border-color: var(--info);
-  box-shadow: 0 0 0 2px var(--info);
+.file-card:hover {
+  transform: translateY(-2px);
+}
+
+.file-card--selected {
+  border: 2px solid rgb(var(--v-theme-primary));
 }
 
 .file-preview {
   position: relative;
-  height: 150px;
-  background: rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
-}
-
-.file-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.file-icon-large .material-icons-outlined {
-  font-size: 48px;
 }
 
 .file-checkbox {
   position: absolute;
-  top: var(--space-sm);
-  left: var(--space-sm);
-}
-
-.file-card-info {
-  padding: var(--space-md);
-}
-
-.file-card-name {
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: var(--space-xs);
-}
-
-.file-card-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.file-card-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 var(--space-sm) var(--space-sm);
-  gap: var(--space-xs);
-  opacity: 0;
-  transition: var(--transition-fast);
-}
-
-.file-card:hover .file-card-actions {
-  opacity: 1;
-}
-
-.file-table {
-  overflow-x: auto;
-}
-
-.file-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.file-table th,
-.file-table td {
-  padding: var(--space-md);
-  text-align: left;
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.file-table th {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.file-table tr:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.file-table tr.selected {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.file-name-cell {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.file-name-cell .material-icons-outlined {
-  font-size: 20px;
-}
-
-.table-actions {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--space-2xl);
-}
-
-.empty-state .material-icons-outlined {
-  font-size: 64px;
-  color: var(--text-muted);
-  margin-bottom: var(--space-lg);
-}
-
-.empty-state h3 {
-  margin-bottom: var(--space-sm);
-}
-
-.empty-state p {
-  color: var(--text-secondary);
-  margin-bottom: var(--space-lg);
-}
-
-.loading-state {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-md);
-}
-
-.skeleton {
-  height: 200px;
-  animation: pulse 1.5s infinite;
-}
-
-.load-more {
-  text-align: center;
-  padding: var(--space-xl);
-}
-
-.channel-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: var(--space-lg);
-}
-
-.channel-card {
-  padding: var(--space-lg);
-}
-
-.channel-header {
-  display: flex;
-  gap: var(--space-md);
-  margin-bottom: var(--space-lg);
-}
-
-.channel-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.channel-icon .material-icons-outlined {
-  color: white;
-  font-size: 24px;
-}
-
-.channel-info h3 {
-  font-size: 16px;
-  margin-bottom: 2px;
-}
-
-.channel-info p {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.channel-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.channel-empty {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.channel-items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.channel-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: 13px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-muted);
-}
-
-.status-dot.active {
-  background: var(--success);
-}
-
-.settings-card {
-  padding: var(--space-xl);
-  max-width: 500px;
-}
-
-.settings-card h3 {
-  margin-bottom: var(--space-lg);
-}
-
-.settings-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.form-group label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.text-muted {
-  color: var(--text-muted);
-}
-
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .toolbar {
-    flex-direction: column;
-  }
-  
-  .toolbar-left {
-    width: 100%;
-  }
-  
-  .file-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
-  
-  .channel-list {
-    grid-template-columns: 1fr;
-  }
+  top: 4px;
+  left: 4px;
 }
 </style>
