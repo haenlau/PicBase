@@ -244,17 +244,38 @@
 
       <!-- 渠道配置 -->
       <v-tabs-window-item value="channels">
+        <v-alert type="info" variant="tonal" class="mb-4">
+          <template #prepend>
+            <v-icon>mdi-information</v-icon>
+          </template>
+          <span>Cloudflare R2 需要在 Cloudflare Dashboard 中绑定环境变量 <code>img_r2</code>，此处仅配置公共访问URL。</span>
+        </v-alert>
+
         <v-row>
           <v-col v-for="type in channelTypes" :key="type.id" cols="12" md="6" lg="4">
-            <v-card>
+            <v-card :class="{ 'border-primary': type.id === 'cfr2' && hasR2Binding }">
               <v-card-title class="d-flex align-center">
                 <v-icon :color="type.color" class="mr-2">{{ type.icon }}</v-icon>
                 {{ type.name }}
+                <v-spacer />
+                <v-chip
+                  v-if="type.id === 'cfr2'"
+                  :color="hasR2Binding ? 'success' : 'warning'"
+                  size="small"
+                  variant="tonal"
+                >
+                  {{ hasR2Binding ? '已绑定' : '未绑定' }}
+                </v-chip>
               </v-card-title>
               <v-card-subtitle>{{ type.description }}</v-card-subtitle>
               <v-divider />
               <v-card-text>
-                <div v-if="getChannelsByType(type.id).length === 0" class="text-medium-emphasis text-center py-4">
+                <div v-if="type.id === 'cfr2' && !hasR2Binding" class="text-medium-emphasis text-center py-4">
+                  <v-icon size="48" color="grey" class="mb-2">mdi-cloud-off-outline</v-icon>
+                  <p>请先在 Cloudflare Dashboard 中绑定 R2 存储桶</p>
+                  <p class="text-caption">变量名: <code>img_r2</code></p>
+                </div>
+                <div v-else-if="getChannelsByType(type.id).length === 0" class="text-medium-emphasis text-center py-4">
                   未配置
                 </div>
                 <v-list v-else density="compact">
@@ -265,11 +286,18 @@
                       </v-icon>
                     </template>
                     <v-list-item-title>{{ ch.name }}</v-list-item-title>
+                    <v-list-item-subtitle v-if="ch.savePath === 'environment variable'">
+                      <v-chip size="x-small" color="info" variant="tonal">环境变量</v-chip>
+                    </v-list-item-subtitle>
                     <template #append>
                       <v-btn icon size="x-small" variant="text" @click="editChannel(type.id, ch)">
                         <v-icon size="small">mdi-pencil</v-icon>
                       </v-btn>
-                      <v-btn icon size="x-small" variant="text" color="error" @click="deleteChannel(type.id, ch)">
+                      <v-btn
+                        v-if="ch.savePath !== 'environment variable'"
+                        icon size="x-small" variant="text" color="error"
+                        @click="deleteChannel(type.id, ch)"
+                      >
                         <v-icon size="small">mdi-delete</v-icon>
                       </v-btn>
                     </template>
@@ -278,9 +306,23 @@
               </v-card-text>
               <v-card-actions>
                 <v-spacer />
-                <v-btn variant="tonal" size="small" @click="addChannel(type.id)">
+                <v-btn
+                  v-if="type.id !== 'cfr2' || hasR2Binding"
+                  variant="tonal"
+                  size="small"
+                  @click="addChannel(type.id)"
+                >
                   <v-icon start>mdi-plus</v-icon>
                   添加
+                </v-btn>
+                <v-btn
+                  v-if="type.id === 'cfr2' && hasR2Binding"
+                  variant="text"
+                  size="small"
+                  @click="editR2Config"
+                >
+                  <v-icon start>mdi-cog</v-icon>
+                  配置URL
                 </v-btn>
               </v-card-actions>
             </v-card>
@@ -644,6 +686,12 @@ const channelOptions = computed(() => {
   return ['全部', ...Array.from(channels)]
 })
 
+// 检查R2是否已绑定
+const hasR2Binding = computed(() => {
+  const r2Channels = uploadConfig.value.cfr2?.channels || []
+  return r2Channels.some(ch => ch.savePath === 'environment variable' || ch.name === 'R2_env')
+})
+
 const allSelected = computed(() => {
   return files.value.length > 0 && selectedFiles.value.length === files.value.length
 })
@@ -749,6 +797,14 @@ function editChannel(type, channel) {
   editingChannelType.value = type
   channelForm.value = { ...channel }
   showChannelDialog.value = true
+}
+
+function editR2Config() {
+  const r2Channels = uploadConfig.value.cfr2?.channels || []
+  const r2Channel = r2Channels.find(ch => ch.savePath === 'environment variable')
+  if (r2Channel) {
+    editChannel('cfr2', r2Channel)
+  }
 }
 
 function resetChannelForm() {
