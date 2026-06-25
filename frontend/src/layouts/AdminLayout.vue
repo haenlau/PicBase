@@ -168,6 +168,11 @@ const mainNavItems = computed(() => [
 
 const bottomNavItems = computed(() => [
   {
+    path: '/admin/channels',
+    icon: 'mdi-server-network',
+    title: t('settings.channels')
+  },
+  {
     path: '/admin/settings',
     icon: 'mdi-cog',
     title: t('settings.title')
@@ -184,6 +189,8 @@ const breadcrumbs = computed(() => {
 
   if (path === '/admin/dashboard') {
     items.push({ title: t('dashboard.title') })
+  } else if (path === '/admin/channels') {
+    items.push({ title: t('settings.channels') })
   } else if (path === '/admin/settings' || path.startsWith('/admin/settings/')) {
     items.push({ title: t('settings.title'), to: path === '/admin/settings' ? undefined : '/admin/settings' })
     if (route.params.tab) {

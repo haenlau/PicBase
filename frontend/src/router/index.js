@@ -28,13 +28,13 @@ const routes = [
     path: '/browse',
     name: 'Browse',
     component: () => import('@/views/Browse.vue'),
-    meta: { layout: 'user', requiresAuth: false }
+    meta: { layout: 'user', requiresAuth: true }
   },
   {
     path: '/file/:path(.*)',
     name: 'FileView',
     component: () => import('@/views/Browse.vue'),
-    meta: { layout: 'user', requiresAuth: false }
+    meta: { layout: 'user', requiresAuth: true }
   },
   {
     path: '/admin',
@@ -45,6 +45,12 @@ const routes = [
     path: '/admin/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/Dashboard.vue'),
+    meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/channels',
+    name: 'Channels',
+    component: () => import('@/views/ChannelConfig.vue'),
     meta: { layout: 'admin', requiresAuth: true, requiresAdmin: true }
   },
   {

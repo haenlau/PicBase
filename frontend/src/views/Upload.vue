@@ -27,6 +27,7 @@
                 variant="tonal"
                 size="large"
                 @click.stop="triggerFileInput"
+                :disabled="!hasChannels"
               >
                 {{ t('upload.selectFiles') }}
               </v-btn>
@@ -41,8 +42,32 @@
             @change="handleFileSelect"
           />
 
+          <!-- No Channels Warning -->
+          <v-alert
+            v-if="!hasChannels && !loadingChannels"
+            type="warning"
+            variant="tonal"
+            class="mb-6"
+            prominent
+          >
+            <template #prepend>
+              <v-icon size="32">mdi-alert-circle</v-icon>
+            </template>
+            <v-alert-title>No Upload Channels Configured</v-alert-title>
+            <span>Please configure at least one storage channel before uploading files.</span>
+            <template #append>
+              <v-btn
+                color="warning"
+                variant="tonal"
+                to="/admin/channels"
+              >
+                Configure Channels
+              </v-btn>
+            </template>
+          </v-alert>
+
           <!-- Upload Settings -->
-          <v-card v-if="files.length > 0" class="mb-6">
+          <v-card v-if="files.length > 0 && hasChannels" class="mb-6">
             <v-card-title class="text-subtitle-1 font-weight-medium">
               <v-icon class="mr-2">mdi-cog</v-icon>
               Upload Settings
@@ -89,7 +114,7 @@
                   size="small"
                   class="mr-2"
                   :loading="uploading"
-                  :disabled="pendingFiles === 0"
+                  :disabled="pendingFiles === 0 || !hasChannels"
                   @click="uploadAll"
                 >
                   <v-icon start>mdi-cloud-upload</v-icon>
@@ -155,7 +180,7 @@
                       icon
                       size="small"
                       variant="text"
-                      @click="copyLink(file)"
+                      @click="showLinkDialog(file)"
                     >
                       <v-icon>mdi-content-copy</v-icon>
                     </v-btn>
@@ -227,6 +252,55 @@
       </v-row>
     </v-container>
 
+    <!-- Link Format Dialog -->
+    <v-dialog v-model="showLinkFormatDialog" max-width="500">
+      <v-card v-if="linkDialogFile">
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>Copy Link</span>
+          <v-btn icon variant="text" @click="showLinkFormatDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-divider />
+        <v-card-text>
+          <v-list>
+            <v-list-item>
+              <v-list-item-title class="text-caption font-weight-bold">Direct Link</v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">{{ getDirectLink(linkDialogFile) }}</v-list-item-subtitle>
+              <template #append>
+                <v-btn size="small" variant="tonal" @click="copyText(getDirectLink(linkDialogFile))">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copy
+                </v-btn>
+              </template>
+            </v-list-item>
+            <v-divider />
+            <v-list-item>
+              <v-list-item-title class="text-caption font-weight-bold">Markdown</v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">{{ getMarkdownLink(linkDialogFile) }}</v-list-item-subtitle>
+              <template #append>
+                <v-btn size="small" variant="tonal" @click="copyText(getMarkdownLink(linkDialogFile))">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copy
+                </v-btn>
+              </template>
+            </v-list-item>
+            <v-divider />
+            <v-list-item>
+              <v-list-item-title class="text-caption font-weight-bold">HTML</v-list-item-title>
+              <v-list-item-subtitle class="text-truncate">{{ getHtmlLink(linkDialogFile) }}</v-list-item-subtitle>
+              <template #append>
+                <v-btn size="small" variant="tonal" @click="copyText(getHtmlLink(linkDialogFile))">
+                  <v-icon start size="small">mdi-content-copy</v-icon>
+                  Copy
+                </v-btn>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000">
       {{ snackbarText }}
@@ -249,20 +323,18 @@ const dragover = ref(false)
 const snackbar = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref('success')
+const loadingChannels = ref(true)
+const showLinkFormatDialog = ref(false)
+const linkDialogFile = ref(null)
 
 const files = computed(() => uploadStore.files)
 const uploading = computed(() => uploadStore.uploading)
 const uploadHistory = computed(() => uploadStore.uploadHistory)
 const pendingFiles = computed(() => uploadStore.files.filter(f => f.status === 'pending').length)
 
-const selectedChannel = computed({
-  get: () => uploadStore.selectedChannel,
-  set: (val) => { uploadStore.selectedChannel = val }
-})
-
-const uploadFolder = computed({
-  get: () => uploadStore.uploadFolder,
-  set: (val) => { uploadStore.uploadFolder = val }
+const hasChannels = computed(() => {
+  const channels = uploadStore.channels
+  return Object.values(channels).some(arr => Array.isArray(arr) && arr.length > 0)
 })
 
 const channelOptions = computed(() => {
@@ -273,31 +345,64 @@ const channelOptions = computed(() => {
       data.forEach(ch => {
         options.push({
           title: ch.name || type,
-          value: type
+          value: `${type}::${ch.name}`
         })
       })
     }
   }
-  if (options.length === 0) {
-    options.push({ title: 'Telegram', value: 'telegram' })
-  }
   return options
 })
 
-onMounted(() => {
-  uploadStore.fetchChannels()
+const selectedChannel = computed({
+  get: () => {
+    const current = uploadStore.selectedChannel
+    const name = uploadStore.selectedChannelName
+    if (name) {
+      return `${current}::${name}`
+    }
+    return current
+  },
+  set: (val) => {
+    if (val && val.includes('::')) {
+      const [type, name] = val.split('::')
+      uploadStore.selectedChannel = type
+      uploadStore.selectedChannelName = name
+    } else {
+      uploadStore.selectedChannel = val
+      uploadStore.selectedChannelName = ''
+    }
+  }
+})
+
+const uploadFolder = computed({
+  get: () => uploadStore.uploadFolder,
+  set: (val) => { uploadStore.uploadFolder = val }
+})
+
+onMounted(async () => {
+  await uploadStore.fetchChannels()
+  loadingChannels.value = false
+  
+  // 自动选择第一个可用渠道
+  if (channelOptions.value.length > 0 && !selectedChannel.value) {
+    selectedChannel.value = channelOptions.value[0].value
+  }
 })
 
 const triggerFileInput = () => {
-  fileInput.value.click()
+  if (hasChannels.value) {
+    fileInput.value.click()
+  }
 }
 
 const handleDrop = (event) => {
   event.preventDefault()
   dragover.value = false
-  const droppedFiles = event.dataTransfer.files
-  if (droppedFiles.length > 0) {
-    uploadStore.addFiles(droppedFiles)
+  if (hasChannels.value) {
+    const droppedFiles = event.dataTransfer.files
+    if (droppedFiles.length > 0) {
+      uploadStore.addFiles(droppedFiles)
+    }
   }
 }
 
@@ -338,20 +443,35 @@ const retryUpload = async (file) => {
   await uploadStore.uploadFile(file)
 }
 
-const copyLink = async (file) => {
-  const fullUrl = `${window.location.origin}${file.url}`
-  const success = await copyToClipboard(fullUrl)
+const showLinkDialog = (file) => {
+  linkDialogFile.value = file
+  showLinkFormatDialog.value = true
+}
+
+// 链接格式生成
+const getDirectLink = (file) => {
+  const fileId = file.url || file.name
+  return `${window.location.origin}${fileId}`
+}
+
+const getMarkdownLink = (file) => {
+  return `![${file.name}](${getDirectLink(file)})`
+}
+
+const getHtmlLink = (file) => {
+  return `<img src="${getDirectLink(file)}" alt="${file.name}" />`
+}
+
+const copyText = async (text) => {
+  const success = await copyToClipboard(text)
   if (success) {
     showMessage(t('common.copied'), 'success')
   }
 }
 
 const copyHistoryLink = async (item) => {
-  const fullUrl = `${window.location.origin}${item.url}`
-  const success = await copyToClipboard(fullUrl)
-  if (success) {
-    showMessage(t('common.copied'), 'success')
-  }
+  const url = `${window.location.origin}${item.url}`
+  await copyText(url)
 }
 
 const clearHistory = () => {
@@ -395,7 +515,7 @@ const getFileColor = (status) => {
   background: rgb(var(--v-theme-surface));
 }
 
-.upload-zone:hover {
+.upload-zone:hover:not(.upload-zone--active) {
   border-color: rgb(var(--v-theme-primary));
   background: rgba(var(--v-theme-primary), 0.04);
 }

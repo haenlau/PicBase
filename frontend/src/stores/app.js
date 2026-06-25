@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
-import { useTheme } from 'vuetify'
+import { ref } from 'vue'
 
 export const useAppStore = defineStore('app', () => {
   const darkMode = ref(false)
@@ -13,6 +12,7 @@ export const useAppStore = defineStore('app', () => {
     if (saved !== null) {
       darkMode.value = saved === 'true'
     } else {
+      // 跟随系统偏好
       darkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
     }
   }

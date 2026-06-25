@@ -85,6 +85,13 @@
             </v-btn>
             <v-btn
               variant="tonal"
+              prepend-icon="mdi-server-network"
+              to="/admin/channels"
+            >
+              {{ t('settings.channels') }}
+            </v-btn>
+            <v-btn
+              variant="tonal"
               prepend-icon="mdi-cog"
               to="/admin/settings"
             >
@@ -154,6 +161,15 @@
                 variant="text"
                 size="small"
                 class="mr-2"
+                @click="batchCopyLinks"
+              >
+                <v-icon start>mdi-content-copy</v-icon>
+                {{ t('dashboard.copyLink') }}
+              </v-btn>
+              <v-btn
+                variant="text"
+                size="small"
+                class="mr-2"
                 @click="batchDelete"
               >
                 <v-icon start>mdi-delete</v-icon>
@@ -198,7 +214,7 @@
           <v-row v-else>
             <v-col
               v-for="file in files"
-              :key="fileKey(file)"
+              :key="file.name"
               cols="6"
               sm="4"
               md="3"
@@ -239,7 +255,7 @@
                 </div>
                 <v-card-text class="pa-2">
                   <p class="text-caption text-truncate">{{ file.name }}</p>
-                  <p class="text-caption text-medium-emphasis">{{ formatFileSize(file.size) }}</p>
+                  <p class="text-caption text-medium-emphasis">{{ formatFileSize(getFileSize(file)) }}</p>
                 </v-card-text>
               </v-card>
             </v-col>
@@ -264,7 +280,7 @@
               <th width="100">{{ t('common.size') }}</th>
               <th width="100">{{ t('common.channel') }}</th>
               <th width="120">{{ t('common.date') }}</th>
-              <th width="80">{{ t('common.actions') }}</th>
+              <th width="120">{{ t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -281,7 +297,7 @@
             </tr>
             <tr
               v-for="file in files"
-              :key="fileKey(file)"
+              :key="file.name"
               :class="{ 'bg-primary-lighten-4': isSelected(file) }"
               @click="toggleSelect(file)"
               style="cursor: pointer"
@@ -300,42 +316,41 @@
                   <span class="text-truncate">{{ file.name }}</span>
                 </div>
               </td>
-              <td>{{ formatFileSize(file.size) }}</td>
+              <td>{{ formatFileSize(getFileSize(file)) }}</td>
               <td>
                 <v-chip size="small" variant="tonal">
-                  {{ file.channel || '-' }}
+                  {{ file.metadata?.Channel || '-' }}
                 </v-chip>
               </td>
-              <td>{{ formatDate(file.time) }}</td>
+              <td>{{ formatDate(file.metadata?.TimeStamp) }}</td>
               <td @click.stop>
-                <v-menu>
-                  <template #activator="{ props }">
-                    <v-btn icon size="small" variant="text" v-bind="props">
-                      <v-icon>mdi-dots-vertical</v-icon>
-                    </v-btn>
-                  </template>
-                  <v-list density="compact">
-                    <v-list-item @click="copyLink(file)">
-                      <template #prepend>
-                        <v-icon>mdi-content-copy</v-icon>
-                      </template>
-                      <v-list-item-title>{{ t('dashboard.copyLink') }}</v-list-item-title>
-                    </v-list-item>
-                    <v-list-item @click="openDetail(file)">
-                      <template #prepend>
-                        <v-icon>mdi-information</v-icon>
-                      </template>
-                      <v-list-item-title>{{ t('dashboard.metadata') }}</v-list-item-title>
-                    </v-list-item>
-                    <v-divider />
-                    <v-list-item @click="deleteFile(file)">
-                      <template #prepend>
-                        <v-icon color="error">mdi-delete</v-icon>
-                      </template>
-                      <v-list-item-title class="text-error">{{ t('common.delete') }}</v-list-item-title>
-                    </v-list-item>
-                  </v-list>
-                </v-menu>
+                <div class="d-flex align-center ga-1">
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    @click="copyLink(file)"
+                  >
+                    <v-icon>mdi-content-copy</v-icon>
+                  </v-btn>
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    @click="openDetail(file)"
+                  >
+                    <v-icon>mdi-information</v-icon>
+                  </v-btn>
+                  <v-btn
+                    icon
+                    size="small"
+                    variant="text"
+                    color="error"
+                    @click="deleteFile(file)"
+                  >
+                    <v-icon>mdi-delete</v-icon>
+                  </v-btn>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -363,6 +378,15 @@
           </v-card-title>
           <v-divider />
           <v-card-text>
+            <!-- Preview -->
+            <v-card v-if="isImage(selectedFile)" class="mb-4" variant="outlined">
+              <v-img
+                :src="getFileUrl(selectedFile)"
+                max-height="300"
+                contain
+              />
+            </v-card>
+
             <v-list>
               <v-list-item :subtitle="selectedFile.name">
                 <template #prepend>
@@ -370,19 +394,19 @@
                 </template>
                 <v-list-item-title>{{ t('common.name') }}</v-list-item-title>
               </v-list-item>
-              <v-list-item :subtitle="formatFileSize(selectedFile.size)">
+              <v-list-item :subtitle="formatFileSize(getFileSize(selectedFile))">
                 <template #prepend>
                   <v-icon>mdi-harddisk</v-icon>
                 </template>
                 <v-list-item-title>{{ t('common.size') }}</v-list-item-title>
               </v-list-item>
-              <v-list-item :subtitle="selectedFile.channel || '-'">
+              <v-list-item :subtitle="selectedFile.metadata?.Channel || '-'">
                 <template #prepend>
                   <v-icon>mdi-server-network</v-icon>
                 </template>
                 <v-list-item-title>{{ t('common.channel') }}</v-list-item-title>
               </v-list-item>
-              <v-list-item :subtitle="formatDateTime(selectedFile.time)">
+              <v-list-item :subtitle="formatDateTime(selectedFile.metadata?.TimeStamp)">
                 <template #prepend>
                   <v-icon>mdi-calendar</v-icon>
                 </template>
@@ -390,21 +414,46 @@
               </v-list-item>
             </v-list>
 
-            <!-- Preview -->
-            <v-card v-if="isImage(selectedFile)" class="mt-4" variant="outlined">
-              <v-img
-                :src="getFileUrl(selectedFile)"
-                max-height="300"
-                contain
-              />
+            <!-- Link Formats -->
+            <v-card class="mt-4" variant="outlined">
+              <v-card-title class="text-subtitle-2">
+                <v-icon class="mr-2" size="small">mdi-link</v-icon>
+                Link Formats
+              </v-card-title>
+              <v-divider />
+              <v-list density="compact">
+                <v-list-item>
+                  <v-list-item-title class="text-caption">Direct Link</v-list-item-title>
+                  <v-list-item-subtitle class="text-truncate">{{ getDirectLink(selectedFile) }}</v-list-item-subtitle>
+                  <template #append>
+                    <v-btn size="small" variant="text" @click="copyText(getDirectLink(selectedFile))">
+                      <v-icon>mdi-content-copy</v-icon>
+                    </v-btn>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="text-caption">Markdown</v-list-item-title>
+                  <v-list-item-subtitle class="text-truncate">{{ getMarkdownLink(selectedFile) }}</v-list-item-subtitle>
+                  <template #append>
+                    <v-btn size="small" variant="text" @click="copyText(getMarkdownLink(selectedFile))">
+                      <v-icon>mdi-content-copy</v-icon>
+                    </v-btn>
+                  </template>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title class="text-caption">HTML</v-list-item-title>
+                  <v-list-item-subtitle class="text-truncate">{{ getHtmlLink(selectedFile) }}</v-list-item-subtitle>
+                  <template #append>
+                    <v-btn size="small" variant="text" @click="copyText(getHtmlLink(selectedFile))">
+                      <v-icon>mdi-content-copy</v-icon>
+                    </v-btn>
+                  </template>
+                </v-list-item>
+              </v-list>
             </v-card>
           </v-card-text>
           <v-card-actions>
             <v-spacer />
-            <v-btn @click="copyLink(selectedFile)">
-              <v-icon start>mdi-content-copy</v-icon>
-              {{ t('dashboard.copyLink') }}
-            </v-btn>
             <v-btn color="error" @click="deleteFile(selectedFile); showDetail = false">
               <v-icon start>mdi-delete</v-icon>
               {{ t('common.delete') }}
@@ -468,10 +517,6 @@ const allSelected = computed(() => {
   return files.value.length > 0 && selectedFiles.value.length === files.value.length
 })
 
-const fileKey = (file) => {
-  return file.id || file.name || Math.random().toString()
-}
-
 watch(viewMode, (val) => {
   localStorage.setItem('viewMode', val)
 })
@@ -520,31 +565,40 @@ const clearSearch = () => {
   fetchFiles()
 }
 
+// 从 metadata 中获取文件大小
+const getFileSize = (file) => {
+  const sizeStr = file.metadata?.FileSize
+  if (sizeStr) {
+    return parseFloat(sizeStr) * 1024 * 1024 // MB to bytes
+  }
+  return 0
+}
+
 const isImage = (file) => {
-  return file.type && file.type.startsWith('image/')
+  const type = file.metadata?.FileType
+  return type && type.startsWith('image/')
 }
 
 const getFileUrl = (file) => {
-  return file.url || `/file/${file.id}`
+  return `/file/${file.name}`
 }
 
 const getFileTypeIcon = (file) => {
-  if (!file.type) return 'mdi-file'
-  if (file.type.startsWith('image/')) return 'mdi-file-image'
-  if (file.type.startsWith('video/')) return 'mdi-file-video'
-  if (file.type.startsWith('audio/')) return 'mdi-file-music'
-  if (file.type === 'application/pdf') return 'mdi-file-pdf'
+  const type = file.metadata?.FileType
+  if (!type) return 'mdi-file'
+  if (type.startsWith('image/')) return 'mdi-file-image'
+  if (type.startsWith('video/')) return 'mdi-file-video'
+  if (type.startsWith('audio/')) return 'mdi-file-music'
+  if (type === 'application/pdf') return 'mdi-file-pdf'
   return 'mdi-file'
 }
 
 const isSelected = (file) => {
-  const key = file.id || file.name
-  return selectedFiles.value.some(f => (f.id || f.name) === key)
+  return selectedFiles.value.some(f => f.name === file.name)
 }
 
 const toggleSelect = (file) => {
-  const key = file.id || file.name
-  const index = selectedFiles.value.findIndex(f => (f.id || f.name) === key)
+  const index = selectedFiles.value.findIndex(f => f.name === file.name)
   if (index >= 0) {
     selectedFiles.value.splice(index, 1)
   } else {
@@ -569,20 +623,43 @@ const openDetail = (file) => {
   showDetail.value = true
 }
 
+// 链接格式生成
+const getDirectLink = (file) => {
+  return `${window.location.origin}/file/${file.name}`
+}
+
+const getMarkdownLink = (file) => {
+  const name = file.name || 'image'
+  return `![${name}](${getDirectLink(file)})`
+}
+
+const getHtmlLink = (file) => {
+  return `<img src="${getDirectLink(file)}" alt="${file.name}" />`
+}
+
 const copyLink = async (file) => {
-  const url = `${window.location.origin}${file.url}`
-  const success = await copyToClipboard(url)
+  const url = getDirectLink(file)
+  await copyText(url)
+}
+
+const copyText = async (text) => {
+  const success = await copyToClipboard(text)
   if (success) {
     showMessage(t('dashboard.linkCopied'), 'success')
   }
 }
 
+const batchCopyLinks = async () => {
+  const links = selectedFiles.value.map(f => getDirectLink(f)).join('\n')
+  await copyText(links)
+}
+
 const deleteFile = async (file) => {
   try {
-    await manageApi.deleteFile(file.id || file.name)
+    await manageApi.deleteFile(file.name)
     showMessage(t('dashboard.deleteSuccess'), 'success')
     fetchFiles()
-    selectedFiles.value = selectedFiles.value.filter(f => (f.id || f.name) !== (file.id || file.name))
+    selectedFiles.value = selectedFiles.value.filter(f => f.name !== file.name)
   } catch (error) {
     showMessage(t('dashboard.deleteFailed'), 'error')
   }
@@ -593,7 +670,7 @@ const batchDelete = async () => {
   
   try {
     for (const file of selectedFiles.value) {
-      await manageApi.deleteFile(file.id || file.name)
+      await manageApi.deleteFile(file.name)
     }
     showMessage(t('dashboard.deleteSuccess'), 'success')
     selectedFiles.value = []

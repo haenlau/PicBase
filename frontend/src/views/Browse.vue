@@ -20,13 +20,14 @@
             </v-card-text>
           </v-card>
 
-          <!-- Images Grid -->
+          <!-- Loading -->
           <v-row v-if="loading && images.length === 0">
             <v-col v-for="n in 12" :key="n" cols="6" sm="4" md="3">
               <v-skeleton-loader type="card" />
             </v-col>
           </v-row>
 
+          <!-- Empty State -->
           <v-row v-else-if="images.length === 0">
             <v-col cols="12">
               <div class="text-center py-12">
@@ -36,10 +37,11 @@
             </v-col>
           </v-row>
 
+          <!-- Image Grid -->
           <v-row v-else>
             <v-col
               v-for="image in images"
-              :key="imageKey(image)"
+              :key="image.name"
               cols="6"
               sm="4"
               md="3"
@@ -167,6 +169,9 @@ const fetchImages = async (reset = true) => {
     hasMore.value = newImages.length === pageSize.value
   } catch (error) {
     console.error('Failed to fetch images:', error)
+    if (error.response?.status === 403) {
+      showMessage('Public browse is disabled', 'warning')
+    }
   } finally {
     loading.value = false
   }
@@ -182,12 +187,9 @@ const loadMore = () => {
   fetchImages(false)
 }
 
-const imageKey = (image) => {
-  return image.id || image.name || Math.random().toString()
-}
-
 const getImageUrl = (image) => {
-  return image.url || `/file/${image.id}`
+  // API 返回的 name 就是文件 ID
+  return `/file/${image.name}`
 }
 
 const openPreview = (image) => {
@@ -196,7 +198,7 @@ const openPreview = (image) => {
 }
 
 const copyLink = async (image) => {
-  const url = `${window.location.origin}${getImageUrl(image)}`
+  const url = `${window.location.origin}/file/${image.name}`
   const success = await copyToClipboard(url)
   if (success) {
     showMessage(t('dashboard.linkCopied'), 'success')

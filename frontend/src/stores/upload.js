@@ -6,7 +6,7 @@ export const useUploadStore = defineStore('upload', () => {
   const files = ref([])
   const uploading = ref(false)
   const channels = ref({})
-  const selectedChannel = ref('telegram')
+  const selectedChannel = ref('')
   const selectedChannelName = ref('')
   const uploadFolder = ref('')
   const uploadHistory = ref(JSON.parse(localStorage.getItem('uploadHistory') || '[]'))
