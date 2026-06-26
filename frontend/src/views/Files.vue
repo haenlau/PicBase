@@ -153,7 +153,7 @@
         </div>
         
         <div class="file-info">
-          <div class="file-name">{{ file.name }}</div>
+          <div class="file-name">{{ getFileName(file) }}</div>
           <div class="file-meta">
             <span class="file-size">{{ formatFileSize(getFileSize(file)) }}</span>
             <span class="file-dot">·</span>
@@ -225,7 +225,7 @@
           <v-icon size="16" :color="getFileTypeColor(file)" class="mr-2">
             {{ getFileTypeIcon(file) }}
           </v-icon>
-          <span class="text-truncate">{{ file.name }}</span>
+          <span class="text-truncate">{{ getFileName(file) }}</span>
         </div>
         <div class="list-col list-col-size">{{ formatFileSize(getFileSize(file)) }}</div>
         <div class="list-col list-col-channel">
@@ -356,8 +356,11 @@ const allSelected = computed(() => {
 })
 
 const linkFormats = computed(() => {
-  const url = linkFile.value.url
-  const name = linkFile.value.name
+  const file = linkFile.value
+  if (!file) return []
+  
+  const url = window.location.origin + '/file/' + encodeURIComponent(file.name)
+  const name = getFileName(file)
   return [
     { label: '直链', value: url },
     { label: 'Markdown', value: `![${name}](${url})` },
@@ -447,7 +450,15 @@ function isImage(file) {
 }
 
 function getFileUrl(file) {
-  return `/file/${file.name}`
+  // 文件名可能包含目录路径，需要编码
+  return `/file/${encodeURIComponent(file.name)}`
+}
+
+function getFileName(file) {
+  // 从完整路径中提取文件名
+  const name = file.name || ''
+  const parts = name.split('/')
+  return parts[parts.length - 1] || name
 }
 
 function getFileTypeIcon(file) {
@@ -482,17 +493,14 @@ function toggleSelectAll() {
 }
 
 function showLink(file) {
-  linkFile.value = {
-    url: window.location.origin + '/file/' + file.name,
-    name: file.name
-  }
+  linkFile.value = file
   copiedLabel.value = ''
   showLinkDialog.value = true
 }
 
 function previewFile(file) {
   if (isImage(file)) {
-    window.open(getFileUrl(file), '_blank')
+    window.open(`/file/${encodeURIComponent(file.name)}`, '_blank')
   }
 }
 
@@ -510,7 +518,9 @@ async function copyLink(item) {
 }
 
 async function copySelectedLinks() {
-  const links = selectedFiles.value.map(f => window.location.origin + '/file/' + f.name).join('\n')
+  const links = selectedFiles.value.map(f => {
+    return window.location.origin + '/file/' + encodeURIComponent(f.name)
+  }).join('\n')
   const success = await copyToClipboard(links)
   if (success) {
     showToast(`已复制 ${selectedFiles.value.length} 个链接`, 'success')
