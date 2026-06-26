@@ -1,7 +1,12 @@
 const api = {
   async get(url) {
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const res = await fetch(url, {
+      credentials: 'include'
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(text || 'HTTP ' + res.status)
+    }
     return res.json()
   },
 
@@ -9,33 +14,47 @@ const api = {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      credentials: 'include'
     })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(text || 'HTTP ' + res.status)
+    }
     return res.json()
   },
 
   async del(url) {
-    const res = await fetch(url, { method: 'DELETE' })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const res = await fetch(url, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(text || 'HTTP ' + res.status)
+    }
     return res.json()
   },
 
-  async upload(file, params = {}) {
+  async upload(file, params) {
     const formData = new FormData()
     formData.append('file', file)
 
-    const query = new URLSearchParams(params).toString()
-    const url = query ? `/upload?${query}` : '/upload'
+    let url = '/upload'
+    if (params && Object.keys(params).length > 0) {
+      const query = new URLSearchParams(params).toString()
+      url = '/upload?' + query
+    }
 
     const res = await fetch(url, {
       method: 'POST',
-      body: formData
+      body: formData,
+      credentials: 'include'
     })
 
     if (!res.ok) {
       const text = await res.text()
-      throw new Error(text || `Upload failed: ${res.status}`)
+      throw new Error(text || 'Upload failed: ' + res.status)
     }
 
     return res.json()
