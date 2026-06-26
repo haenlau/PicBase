@@ -19,6 +19,10 @@
             @input="debouncedSearch"
           />
         </div>
+        <button class="btn-secondary btn-sm" @click="showNewFolderDialog = true">
+          <v-icon size="16">mdi-folder-plus</v-icon>
+          新建文件夹
+        </button>
       </div>
       <div class="toolbar-right">
         <select v-model="filterChannel" class="toolbar-select">
@@ -47,26 +51,6 @@
       </div>
     </div>
 
-    <!-- 批量操作 -->
-    <transition name="fade">
-      <div v-if="selectedFiles.length > 0" class="batch-bar">
-        <span class="batch-info">已选择 {{ selectedFiles.length }} 项</span>
-        <div class="batch-actions">
-          <button class="btn-sm btn-secondary" @click="copySelectedLinks">
-            <v-icon size="14">mdi-link</v-icon>
-            复制链接
-          </button>
-          <button class="btn-sm btn-danger" @click="confirmBatchDelete">
-            <v-icon size="14">mdi-delete</v-icon>
-            删除
-          </button>
-          <button class="btn-sm btn-ghost" @click="selectedFiles = []">
-            取消
-          </button>
-        </div>
-      </div>
-    </transition>
-
     <!-- 面包屑导航 -->
     <div v-if="currentDir" class="breadcrumb">
       <button class="breadcrumb-item" @click="navigateToDir('')">
@@ -82,6 +66,30 @@
         </button>
       </template>
     </div>
+
+    <!-- 批量操作 -->
+    <transition name="fade">
+      <div v-if="selectedFiles.length > 0" class="batch-bar">
+        <span class="batch-info">已选择 {{ selectedFiles.length }} 项</span>
+        <div class="batch-actions">
+          <button class="btn-sm btn-secondary" @click="showBatchMoveDialog = true">
+            <v-icon size="14">mdi-folder-move</v-icon>
+            移动
+          </button>
+          <button class="btn-sm btn-secondary" @click="copySelectedLinks">
+            <v-icon size="14">mdi-link</v-icon>
+            复制链接
+          </button>
+          <button class="btn-sm btn-danger" @click="confirmBatchDelete">
+            <v-icon size="14">mdi-delete</v-icon>
+            删除
+          </button>
+          <button class="btn-sm btn-ghost" @click="selectedFiles = []">
+            取消
+          </button>
+        </div>
+      </div>
+    </transition>
 
     <!-- 网格视图 -->
     <div v-if="viewMode === 'grid'" class="file-grid">
@@ -101,6 +109,14 @@
         <div class="file-preview">
           <div class="file-icon-large">
             <v-icon size="48" color="warning">mdi-folder</v-icon>
+          </div>
+          <div class="file-overlay">
+            <button class="overlay-btn" @click.stop="renameFolder(dir)" title="重命名">
+              <v-icon size="18">mdi-pencil</v-icon>
+            </button>
+            <button class="overlay-btn overlay-btn-danger" @click.stop="confirmDeleteFolder(dir)" title="删除">
+              <v-icon size="18">mdi-delete</v-icon>
+            </button>
           </div>
         </div>
         <div class="file-info">
@@ -123,7 +139,7 @@
           <img
             v-if="isImage(file)"
             :src="getFileUrl(file)"
-            :alt="file.name"
+            :alt="getFileName(file)"
             class="file-image"
             loading="lazy"
           />
@@ -140,6 +156,12 @@
             </button>
             <button class="overlay-btn" @click.stop="previewFile(file)" title="预览">
               <v-icon size="18">mdi-eye</v-icon>
+            </button>
+            <button class="overlay-btn" @click.stop="renameFile(file)" title="重命名">
+              <v-icon size="18">mdi-pencil</v-icon>
+            </button>
+            <button class="overlay-btn" @click.stop="moveFile(file)" title="移动">
+              <v-icon size="18">mdi-folder-move</v-icon>
             </button>
             <button class="overlay-btn overlay-btn-danger" @click.stop="confirmDelete(file)" title="删除">
               <v-icon size="18">mdi-delete</v-icon>
@@ -158,8 +180,6 @@
             <span class="file-size">{{ formatFileSize(getFileSize(file)) }}</span>
             <span class="file-dot">·</span>
             <span class="file-channel">{{ file.metadata?.Channel || '-' }}</span>
-            <span class="file-dot">·</span>
-            <span class="file-time">{{ formatTime(file.metadata?.TimeStamp) }}</span>
           </div>
         </div>
       </div>
@@ -202,7 +222,14 @@
         <div class="list-col list-col-size">-</div>
         <div class="list-col list-col-channel">文件夹</div>
         <div class="list-col list-col-time">-</div>
-        <div class="list-col list-col-actions"></div>
+        <div class="list-col list-col-actions" @click.stop>
+          <button class="btn-icon btn-icon-sm" @click="renameFolder(dir)">
+            <v-icon size="14">mdi-pencil</v-icon>
+          </button>
+          <button class="btn-icon btn-icon-sm btn-icon-danger" @click="confirmDeleteFolder(dir)">
+            <v-icon size="14">mdi-delete</v-icon>
+          </button>
+        </div>
       </div>
       
       <!-- 文件 -->
@@ -236,6 +263,12 @@
           <button class="btn-icon btn-icon-sm" @click="showLink(file)">
             <v-icon size="14">mdi-link</v-icon>
           </button>
+          <button class="btn-icon btn-icon-sm" @click="renameFile(file)">
+            <v-icon size="14">mdi-pencil</v-icon>
+          </button>
+          <button class="btn-icon btn-icon-sm" @click="moveFile(file)">
+            <v-icon size="14">mdi-folder-move</v-icon>
+          </button>
           <button class="btn-icon btn-icon-sm btn-icon-danger" @click="confirmDelete(file)">
             <v-icon size="14">mdi-delete</v-icon>
           </button>
@@ -244,7 +277,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="files.length === 0 && !loading" class="empty-state">
+    <div v-if="files.length === 0 && directories.length === 0 && !loading" class="empty-state">
       <div class="empty-icon">
         <v-icon size="48">mdi-folder-open</v-icon>
       </div>
@@ -290,6 +323,104 @@
       </div>
     </div>
 
+    <!-- 重命名弹窗 -->
+    <div v-if="showRenameDialog" class="dialog-overlay" @click="showRenameDialog = false">
+      <div class="dialog dialog-sm" @click.stop>
+        <div class="dialog-header">
+          <h3 class="dialog-title">重命名</h3>
+          <button class="btn-icon btn-icon-ghost" @click="showRenameDialog = false">
+            <v-icon size="20">mdi-close</v-icon>
+          </button>
+        </div>
+        <div class="dialog-content">
+          <div class="form-group">
+            <label class="form-label">新名称</label>
+            <input
+              v-model="newName"
+              type="text"
+              class="form-input"
+              placeholder="输入新名称"
+              @keyup.enter="confirmRename"
+            />
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-ghost" @click="showRenameDialog = false">取消</button>
+          <button class="btn-primary" @click="confirmRename" :disabled="!newName">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移动弹窗 -->
+    <div v-if="showMoveDialog" class="dialog-overlay" @click="showMoveDialog = false">
+      <div class="dialog" @click.stop>
+        <div class="dialog-header">
+          <h3 class="dialog-title">移动到</h3>
+          <button class="btn-icon btn-icon-ghost" @click="showMoveDialog = false">
+            <v-icon size="20">mdi-close</v-icon>
+          </button>
+        </div>
+        <div class="dialog-content">
+          <div class="form-group">
+            <label class="form-label">目标目录</label>
+            <input
+              v-model="targetFolder"
+              type="text"
+              class="form-input"
+              placeholder="输入目标目录，留空表示根目录"
+            />
+          </div>
+          <div class="folder-tree">
+            <div class="folder-item" @click="targetFolder = ''">
+              <v-icon size="16">mdi-folder</v-icon>
+              <span>根目录</span>
+            </div>
+            <div
+              v-for="dir in allDirectories"
+              :key="dir"
+              class="folder-item"
+              @click="targetFolder = dir"
+            >
+              <v-icon size="16">mdi-folder</v-icon>
+              <span>{{ dir }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-ghost" @click="showMoveDialog = false">取消</button>
+          <button class="btn-primary" @click="confirmMove">移动</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新建文件夹弹窗 -->
+    <div v-if="showNewFolderDialog" class="dialog-overlay" @click="showNewFolderDialog = false">
+      <div class="dialog dialog-sm" @click.stop>
+        <div class="dialog-header">
+          <h3 class="dialog-title">新建文件夹</h3>
+          <button class="btn-icon btn-icon-ghost" @click="showNewFolderDialog = false">
+            <v-icon size="20">mdi-close</v-icon>
+          </button>
+        </div>
+        <div class="dialog-content">
+          <div class="form-group">
+            <label class="form-label">文件夹名称</label>
+            <input
+              v-model="newFolderName"
+              type="text"
+              class="form-input"
+              placeholder="输入文件夹名称"
+              @keyup.enter="createFolder"
+            />
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-ghost" @click="showNewFolderDialog = false">取消</button>
+          <button class="btn-primary" @click="createFolder" :disabled="!newFolderName">创建</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 确认弹窗 -->
     <div v-if="showConfirm" class="dialog-overlay" @click="showConfirm = false">
       <div class="dialog dialog-sm" @click.stop>
@@ -323,6 +454,7 @@ const viewMode = ref('grid')
 const loading = ref(false)
 const files = ref([])
 const directories = ref([])
+const allDirectories = ref([])
 const currentDir = ref('')
 const selectedFiles = ref([])
 const searchQuery = ref('')
@@ -331,15 +463,34 @@ const page = ref(0)
 const pageSize = ref(50)
 const hasMore = ref(true)
 
+// 链接弹窗
 const showLinkDialog = ref(false)
-const linkFile = ref({ url: '', name: '' })
+const linkFile = ref(null)
 const copiedLabel = ref('')
 
+// 重命名弹窗
+const showRenameDialog = ref(false)
+const renameTarget = ref(null)
+const newName = ref('')
+
+// 移动弹窗
+const showMoveDialog = ref(false)
+const moveTarget = ref(null)
+const targetFolder = ref('')
+
+// 新建文件夹弹窗
+const showNewFolderDialog = ref(false)
+const newFolderName = ref('')
+
+// 确认弹窗
 const showConfirm = ref(false)
 const confirmTitle = ref('')
 const confirmMessage = ref('')
 const confirmAction = ref(null)
 const deleteTarget = ref(null)
+
+// 批量移动
+const showBatchMoveDialog = ref(false)
 
 const toast = ref({ show: false, message: '', type: 'success', icon: 'mdi-check' })
 
@@ -406,10 +557,22 @@ async function fetchFiles() {
     }
     
     hasMore.value = (data.files || []).length === pageSize.value
+    
+    // 更新所有目录列表（用于移动弹窗）
+    fetchAllDirectories()
   } catch (err) {
     showToast('加载失败', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchAllDirectories() {
+  try {
+    const data = await api.get('/api/manage/list?count=-1&dir=')
+    allDirectories.value = data.directories || []
+  } catch (err) {
+    console.error('Failed to fetch directories:', err)
   }
 }
 
@@ -418,13 +581,8 @@ function navigateToDir(dir) {
   page.value = 0
   files.value = []
   directories.value = []
+  selectedFiles.value = []
   fetchFiles()
-}
-
-function goUp() {
-  const parts = currentDir.value.split('/').filter(Boolean)
-  parts.pop()
-  navigateToDir(parts.length > 0 ? parts.join('/') + '/' : '')
 }
 
 function getDirName(dir) {
@@ -450,12 +608,10 @@ function isImage(file) {
 }
 
 function getFileUrl(file) {
-  // 文件名可能包含目录路径，需要编码
   return `/file/${encodeURIComponent(file.name)}`
 }
 
 function getFileName(file) {
-  // 从完整路径中提取文件名
   const name = file.name || ''
   const parts = name.split('/')
   return parts[parts.length - 1] || name
@@ -492,16 +648,11 @@ function toggleSelectAll() {
   }
 }
 
+// 链接相关
 function showLink(file) {
   linkFile.value = file
   copiedLabel.value = ''
   showLinkDialog.value = true
-}
-
-function previewFile(file) {
-  if (isImage(file)) {
-    window.open(`/file/${encodeURIComponent(file.name)}`, '_blank')
-  }
 }
 
 async function copyLink(item) {
@@ -527,11 +678,128 @@ async function copySelectedLinks() {
   }
 }
 
+// 预览
+function previewFile(file) {
+  if (isImage(file)) {
+    window.open(`/file/${encodeURIComponent(file.name)}`, '_blank')
+  }
+}
+
+// 重命名
+function renameFile(file) {
+  renameTarget.value = { type: 'file', file }
+  newName.value = getFileName(file)
+  showRenameDialog.value = true
+}
+
+function renameFolder(dir) {
+  renameTarget.value = { type: 'folder', dir }
+  newName.value = getDirName(dir)
+  showRenameDialog.value = true
+}
+
+async function confirmRename() {
+  if (!newName.value || !renameTarget.value) return
+  
+  try {
+    if (renameTarget.value.type === 'file') {
+      const file = renameTarget.value.file
+      const oldName = file.name
+      const dir = oldName.includes('/') ? oldName.substring(0, oldName.lastIndexOf('/') + 1) : ''
+      const newNameFull = dir + newName.value
+      
+      await api.put('/api/manage/rename/' + encodeURIComponent(oldName), {
+        newName: newNameFull
+      })
+      
+      showToast('重命名成功', 'success')
+    } else {
+      // 文件夹重命名需要特殊处理
+      showToast('文件夹重命名暂不支持', 'warning')
+    }
+    
+    showRenameDialog.value = false
+    fetchFiles()
+  } catch (err) {
+    showToast('重命名失败: ' + (err.message || ''), 'error')
+  }
+}
+
+// 移动
+function moveFile(file) {
+  moveTarget.value = { type: 'file', files: [file] }
+  targetFolder.value = ''
+  showMoveDialog.value = true
+}
+
+async function confirmMove() {
+  const targets = moveTarget.value?.files || []
+  if (targets.length === 0) return
+  
+  try {
+    for (const file of targets) {
+      const oldName = file.name
+      const fileName = getFileName(file)
+      const newNameFull = targetFolder.value 
+        ? targetFolder.value.replace(/\/$/, '') + '/' + fileName
+        : fileName
+      
+      await api.put('/api/manage/move/' + encodeURIComponent(oldName), {
+        newName: newNameFull
+      })
+    }
+    
+    showToast(`移动成功 ${targets.length} 个文件`, 'success')
+    showMoveDialog.value = false
+    selectedFiles.value = []
+    fetchFiles()
+  } catch (err) {
+    showToast('移动失败: ' + (err.message || ''), 'error')
+  }
+}
+
+// 新建文件夹
+async function createFolder() {
+  if (!newFolderName.value) return
+  
+  try {
+    const folderPath = currentDir.value 
+      ? currentDir.value + newFolderName.value + '/'
+      : newFolderName.value + '/'
+    
+    // 创建一个空的占位文件来创建文件夹
+    const placeholder = new File([''], '.placeholder', { type: 'text/plain' })
+    const formData = new FormData()
+    formData.append('file', placeholder)
+    
+    await api.upload(placeholder, {
+      uploadFolder: folderPath,
+      uploadChannel: 'cfr2' // 使用默认渠道
+    })
+    
+    showToast('文件夹创建成功', 'success')
+    showNewFolderDialog.value = false
+    newFolderName.value = ''
+    fetchFiles()
+  } catch (err) {
+    showToast('创建文件夹失败', 'error')
+  }
+}
+
+// 删除
 function confirmDelete(file) {
-  deleteTarget.value = file
+  deleteTarget.value = { type: 'file', file }
   confirmTitle.value = '删除文件'
-  confirmMessage.value = `确定要删除 "${file.name}" 吗？此操作不可恢复。`
+  confirmMessage.value = `确定要删除 "${getFileName(file)}" 吗？此操作不可恢复。`
   confirmAction.value = 'delete'
+  showConfirm.value = true
+}
+
+function confirmDeleteFolder(dir) {
+  deleteTarget.value = { type: 'folder', dir }
+  confirmTitle.value = '删除文件夹'
+  confirmMessage.value = `确定要删除文件夹 "${getDirName(dir)}" 及其所有内容吗？此操作不可恢复。`
+  confirmAction.value = 'deleteFolder'
   showConfirm.value = true
 }
 
@@ -546,8 +814,10 @@ function confirmBatchDelete() {
 async function handleConfirm() {
   showConfirm.value = false
   
-  if (confirmAction.value === 'delete' && deleteTarget.value) {
-    await deleteFile(deleteTarget.value)
+  if (confirmAction.value === 'delete' && deleteTarget.value?.file) {
+    await deleteFile(deleteTarget.value.file)
+  } else if (confirmAction.value === 'deleteFolder' && deleteTarget.value?.dir) {
+    await deleteFolder(deleteTarget.value.dir)
   } else if (confirmAction.value === 'batchDelete') {
     await batchDelete()
   }
@@ -556,11 +826,29 @@ async function handleConfirm() {
 async function deleteFile(file) {
   try {
     await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
+    // 立即从列表中移除
     files.value = files.value.filter(f => f.name !== file.name)
     selectedFiles.value = selectedFiles.value.filter(f => f.name !== file.name)
     showToast('删除成功', 'success')
   } catch (err) {
     showToast('删除失败', 'error')
+  }
+}
+
+async function deleteFolder(dir) {
+  try {
+    // 删除文件夹需要删除里面的所有文件
+    const data = await api.get('/api/manage/list?count=-1&dir=' + dir)
+    const filesToDelete = data.files || []
+    
+    for (const file of filesToDelete) {
+      await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
+    }
+    
+    showToast('文件夹删除成功', 'success')
+    fetchFiles()
+  } catch (err) {
+    showToast('删除文件夹失败', 'error')
   }
 }
 
@@ -575,7 +863,9 @@ async function batchDelete() {
     }
   }
   
-  files.value = files.value.filter(f => !selectedFiles.value.some(s => s.name === f.name))
+  // 立即从列表中移除
+  const deletedNames = new Set(selectedFiles.value.map(f => f.name))
+  files.value = files.value.filter(f => !deletedNames.has(f.name))
   selectedFiles.value = []
   showToast(`成功删除 ${successCount} 个文件`, 'success')
 }
@@ -625,6 +915,9 @@ function showToast(message, type = 'success') {
 }
 
 .toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   flex: 1;
   min-width: 200px;
 }
@@ -711,6 +1004,39 @@ function showToast(message, type = 'success') {
   color: var(--accent);
 }
 
+/* 面包屑导航 */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-md) 0;
+  margin-bottom: var(--space-lg);
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.breadcrumb-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.breadcrumb-separator {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
 /* 批量操作 */
 .batch-bar {
   display: flex;
@@ -752,6 +1078,11 @@ function showToast(message, type = 'success') {
 
 .btn-primary:hover {
   background: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -996,6 +1327,25 @@ function showToast(message, type = 'success') {
   color: var(--border);
 }
 
+/* 目录卡片 */
+.directory-card {
+  cursor: pointer;
+  border: 1px dashed var(--border);
+}
+
+.directory-card:hover {
+  border-color: var(--warning);
+  background: var(--warning-light);
+}
+
+.directory-item {
+  cursor: pointer;
+}
+
+.directory-item:hover {
+  background: var(--warning-light);
+}
+
 /* 列表视图 */
 .file-list {
   background: var(--bg-secondary);
@@ -1078,7 +1428,7 @@ function showToast(message, type = 'success') {
 }
 
 .list-col-actions {
-  width: 80px;
+  width: 120px;
   flex-shrink: 0;
   display: flex;
   gap: var(--space-xs);
@@ -1160,6 +1510,8 @@ function showToast(message, type = 'success') {
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: var(--shadow-lg);
   animation: fadeInUp 0.2s ease;
 }
@@ -1174,6 +1526,10 @@ function showToast(message, type = 'success') {
   justify-content: space-between;
   padding: var(--space-lg);
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 1;
 }
 
 .dialog-title {
@@ -1192,6 +1548,9 @@ function showToast(message, type = 'success') {
   gap: var(--space-sm);
   padding: var(--space-lg);
   border-top: 1px solid var(--border);
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-secondary);
 }
 
 .link-item {
@@ -1230,6 +1589,64 @@ function showToast(message, type = 'success') {
   font-family: monospace;
 }
 
+/* 表单 */
+.form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.form-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 文件夹树 */
+.folder-tree {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-sm);
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.folder-item:hover {
+  background: var(--bg-hover);
+}
+
 .confirm-text {
   font-size: 14px;
   color: var(--text-secondary);
@@ -1262,6 +1679,11 @@ function showToast(message, type = 'success') {
 .toast-error {
   border-left: 3px solid var(--error);
   color: var(--error);
+}
+
+.toast-warning {
+  border-left: 3px solid var(--warning);
+  color: var(--warning);
 }
 
 /* 骨架屏 */
@@ -1347,58 +1769,6 @@ function showToast(message, type = 'success') {
   opacity: 0;
 }
 
-/* 面包屑导航 */
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-md) 0;
-  margin-bottom: var(--space-lg);
-}
-
-.breadcrumb-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.breadcrumb-item:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.breadcrumb-separator {
-  color: var(--text-tertiary);
-  font-size: 12px;
-}
-
-/* 目录卡片 */
-.directory-card {
-  cursor: pointer;
-  border: 1px dashed var(--border);
-}
-
-.directory-card:hover {
-  border-color: var(--warning);
-  background: var(--warning-light);
-}
-
-.directory-item {
-  cursor: pointer;
-}
-
-.directory-item:hover {
-  background: var(--warning-light);
-}
-
 /* 响应式 */
 @media (max-width: 768px) {
   .page-container {
@@ -1408,6 +1778,11 @@ function showToast(message, type = 'success') {
   .toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+  
+  .toolbar-left,
+  .toolbar-right {
+    width: 100%;
   }
   
   .toolbar-right {
@@ -1421,6 +1796,10 @@ function showToast(message, type = 'success') {
   .list-col-size,
   .list-col-time {
     display: none;
+  }
+  
+  .list-col-actions {
+    width: 80px;
   }
 }
 </style>
