@@ -561,11 +561,17 @@ async function fetchFiles() {
     
     const data = await api.get('/api/manage/list?' + new URLSearchParams(params))
     
+    // 过滤掉占位文件
+    const filteredFiles = (data.files || []).filter(f => {
+      const name = f.name || ''
+      return !name.endsWith('.picbase_folder') && !name.endsWith('/.picbase_folder')
+    })
+    
     if (page.value === 0) {
-      files.value = data.files || []
+      files.value = filteredFiles
       directories.value = data.directories || []
     } else {
-      files.value.push(...(data.files || []))
+      files.value.push(...filteredFiles)
     }
     
     hasMore.value = (data.files || []).length === pageSize.value
@@ -775,26 +781,47 @@ async function createFolder() {
   if (!newFolderName.value) return
   
   try {
+    // 获取可用渠道
+    const channelsData = await api.get('/api/channels')
+    let channelType = ''
+    let channelName = ''
+    
+    for (const [type, channelList] of Object.entries(channelsData)) {
+      if (Array.isArray(channelList) && channelList.length > 0) {
+        channelType = type
+        channelName = channelList[0].name || ''
+        break
+      }
+    }
+    
+    if (!channelType) {
+      showToast('请先配置至少一个存储渠道', 'error')
+      return
+    }
+    
     const folderPath = currentDir.value 
-      ? currentDir.value + newFolderName.value + '/'
-      : newFolderName.value + '/'
+      ? currentDir.value + newFolderName.value
+      : newFolderName.value
     
-    // 创建一个空的占位文件来创建文件夹
-    const placeholder = new File([''], '.placeholder', { type: 'text/plain' })
-    const formData = new FormData()
-    formData.append('file', placeholder)
+    // 创建一个隐藏的占位文件来创建文件夹
+    const placeholder = new File([''], '.picbase_folder', { type: 'text/plain' })
     
-    await api.upload(placeholder, {
-      uploadFolder: folderPath,
-      uploadChannel: 'cfr2' // 使用默认渠道
-    })
+    const params = {
+      uploadChannel: channelType,
+      uploadFolder: folderPath
+    }
+    if (channelName) {
+      params.channelName = channelName
+    }
+    
+    await api.upload(placeholder, params)
     
     showToast('文件夹创建成功', 'success')
     showNewFolderDialog.value = false
     newFolderName.value = ''
     fetchFiles()
   } catch (err) {
-    showToast('创建文件夹失败', 'error')
+    showToast('创建文件夹失败: ' + (err.message || ''), 'error')
   }
 }
 
