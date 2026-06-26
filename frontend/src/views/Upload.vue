@@ -40,13 +40,13 @@
     />
 
     <!-- 上传设置 -->
-    <div v-if="channels.length > 0" class="settings-card">
+    <div v-if="channels.length > 0 && !loadingChannels" class="settings-card">
       <div class="settings-row">
         <div class="setting-item">
           <label class="setting-label">上传渠道</label>
-          <select v-model="selectedChannel" class="setting-select">
-            <option v-for="ch in channels" :key="ch.name" :value="ch">
-              {{ ch.name }}
+          <select v-model="selectedChannelKey" class="setting-select">
+            <option v-for="ch in channelOptions" :key="ch.key" :value="ch.key">
+              {{ ch.label }}
             </option>
           </select>
         </div>
@@ -212,7 +212,7 @@ const isDragOver = ref(false)
 const uploading = ref(false)
 const loadingChannels = ref(true)
 const channels = ref([])
-const selectedChannel = ref(null)
+const selectedChannelKey = ref('')
 const uploadFolder = ref('')
 const files = ref([])
 
@@ -255,8 +255,9 @@ async function fetchChannels() {
       }
     }
     
-    if (channels.value.length > 0) {
-      selectedChannel.value = channels.value[0]
+    // 默认选择第一个渠道
+    if (channels.value.length > 0 && channelOptions.value.length > 0) {
+      selectedChannelKey.value = channelOptions.value[0].key
     }
   } catch (err) {
     console.error('Failed to fetch channels:', err)
@@ -264,6 +265,21 @@ async function fetchChannels() {
     loadingChannels.value = false
   }
 }
+
+// 渠道选项（用于下拉框）
+const channelOptions = computed(() => {
+  return channels.value.map(ch => ({
+    key: `${ch.type}::${ch.name}`,
+    label: ch.name,
+    channel: ch
+  }))
+})
+
+// 当前选中的渠道对象
+const selectedChannel = computed(() => {
+  if (!selectedChannelKey.value) return null
+  return channels.value.find(ch => `${ch.type}::${ch.name}` === selectedChannelKey.value) || null
+})
 
 function triggerFileInput() {
   fileInput.value?.click()

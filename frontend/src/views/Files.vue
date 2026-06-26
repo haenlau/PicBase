@@ -279,11 +279,15 @@
     <!-- 空状态 -->
     <div v-if="files.length === 0 && directories.length === 0 && !loading" class="empty-state">
       <div class="empty-icon">
-        <v-icon size="48">mdi-folder-open</v-icon>
+        <v-icon size="48">{{ searchQuery ? 'mdi-magnify' : 'mdi-folder-open' }}</v-icon>
       </div>
-      <h3 class="empty-title">暂无文件</h3>
-      <p class="empty-text">上传一些文件开始使用吧</p>
-      <button class="btn-primary" @click="$router.push('/')">
+      <h3 class="empty-title">{{ searchQuery ? '未找到匹配文件' : '暂无文件' }}</h3>
+      <p class="empty-text">{{ searchQuery ? `没有找到包含 "${searchQuery}" 的文件` : '上传一些文件开始使用吧' }}</p>
+      <button v-if="searchQuery" class="btn-secondary" @click="clearSearch">
+        <v-icon size="16">mdi-close</v-icon>
+        清空搜索
+      </button>
+      <button v-else class="btn-primary" @click="$router.push('/')">
         <v-icon size="16">mdi-cloud-upload</v-icon>
         去上传
       </button>
@@ -529,6 +533,13 @@ watch(filterChannel, () => {
   files.value = []
   fetchFiles()
 })
+
+function clearSearch() {
+  searchQuery.value = ''
+  page.value = 0
+  files.value = []
+  fetchFiles()
+}
 
 const debouncedSearch = debounce(() => {
   page.value = 0
