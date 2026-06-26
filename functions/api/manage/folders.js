@@ -3,7 +3,7 @@
 // POST: 创建文件夹
 // DELETE: 删除文件夹
 
-import { getDatabase } from '../../../utils/databaseAdapter.js';
+import { getDatabase } from '../../utils/databaseAdapter.js';
 
 const FOLDER_PREFIX = 'manage@folders@';
 
