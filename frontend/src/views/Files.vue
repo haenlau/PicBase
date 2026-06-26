@@ -559,7 +559,11 @@ async function fetchFiles() {
     if (searchQuery.value) params.search = searchQuery.value
     if (filterChannel.value) params.channel = filterChannel.value
     
-    const data = await api.get('/api/manage/list?' + new URLSearchParams(params))
+    // 同时获取文件列表和虚拟文件夹
+    const [data, folderData] = await Promise.all([
+      api.get('/api/manage/list?' + new URLSearchParams(params)),
+      api.get('/api/manage/folders?parent=' + encodeURIComponent(currentDir.value ? currentDir.value.replace(/\/$/, '') : ''))
+    ])
     
     // 过滤掉占位文件
     const filteredFiles = (data.files || []).filter(f => {
@@ -567,9 +571,14 @@ async function fetchFiles() {
       return !name.endsWith('.picbase_folder') && !name.endsWith('/.picbase_folder')
     })
     
+    // 合并虚拟文件夹和基于路径的文件夹
+    const virtualFolders = (folderData.folders || []).map(f => f.path)
+    const pathFolders = data.directories || []
+    const allFolders = [...new Set([...virtualFolders, ...pathFolders])]
+    
     if (page.value === 0) {
       files.value = filteredFiles
-      directories.value = data.directories || []
+      directories.value = allFolders
     } else {
       files.value.push(...filteredFiles)
     }
@@ -781,40 +790,11 @@ async function createFolder() {
   if (!newFolderName.value) return
   
   try {
-    // 获取可用渠道
-    const channelsData = await api.get('/api/channels')
-    let channelType = ''
-    let channelName = ''
-    
-    for (const [type, channelList] of Object.entries(channelsData)) {
-      if (Array.isArray(channelList) && channelList.length > 0) {
-        channelType = type
-        channelName = channelList[0].name || ''
-        break
-      }
-    }
-    
-    if (!channelType) {
-      showToast('请先配置至少一个存储渠道', 'error')
-      return
-    }
-    
-    const folderPath = currentDir.value 
-      ? currentDir.value + newFolderName.value
-      : newFolderName.value
-    
-    // 创建一个隐藏的占位文件来创建文件夹
-    const placeholder = new File([''], '.picbase_folder', { type: 'text/plain' })
-    
-    const params = {
-      uploadChannel: channelType,
-      uploadFolder: folderPath
-    }
-    if (channelName) {
-      params.channelName = channelName
-    }
-    
-    await api.upload(placeholder, params)
+    // 使用文件夹 API 创建虚拟文件夹
+    await api.post('/api/manage/folders', {
+      name: newFolderName.value,
+      parent: currentDir.value ? currentDir.value.replace(/\/$/, '') : ''
+    })
     
     showToast('文件夹创建成功', 'success')
     showNewFolderDialog.value = false
@@ -881,8 +861,7 @@ async function deleteFile(file) {
 
 async function deleteFolder(dir) {
   try {
-    // 删除文件夹需要删除里面的所有文件
-    // 添加时间戳防止缓存
+    // 删除文件夹里的所有文件
     const timestamp = Date.now()
     const data = await api.get('/api/manage/list?count=-1&dir=' + encodeURIComponent(dir) + '&_t=' + timestamp)
     const filesToDelete = data.files || []
@@ -890,6 +869,10 @@ async function deleteFolder(dir) {
     for (const file of filesToDelete) {
       await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
     }
+    
+    // 删除虚拟文件夹
+    const cleanDir = dir.endsWith('/') ? dir.slice(0, -1) : dir
+    await api.del('/api/manage/folders?path=' + encodeURIComponent(cleanDir))
     
     // 立即从本地列表中移除文件夹
     const dirName = dir.endsWith('/') ? dir : dir + '/'
