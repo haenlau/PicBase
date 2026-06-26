@@ -21,9 +21,14 @@ async function errorHandling(context) {
   try {
     return withDefaultCacheControl(await context.next());
   } catch (err) {
-    return new Response(`${err.message}\n${err.stack}`, {
+    console.error('Manage API error:', err);
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Internal server error',
+    }), {
       status: 500,
       headers: {
+        'Content-Type': 'application/json',
         'Cache-Control': DEFAULT_MANAGE_CACHE_CONTROL,
       },
     });

@@ -323,7 +323,7 @@ async function uploadFileToCloudflareR2(context, fullId, metadata, returnLink) {
     }
 
     // 结束上传
-    waitUntil(endUpload(context, fullId, metadata));
+    await endUpload(context, fullId, metadata);
 
     // 成功上传，将文件ID返回给客户端
     return createResponse(
@@ -424,7 +424,7 @@ async function uploadFileToS3(context, fullId, metadata, returnLink) {
         }
 
         // 结束上传
-        waitUntil(endUpload(context, fullId, metadata));
+        await endUpload(context, fullId, metadata);
 
         return createResponse(JSON.stringify([{ src: returnLink }]), {
             status: 200,
@@ -554,7 +554,7 @@ async function uploadFileToTelegram(context, fullId, metadata, fileExt, fileName
         }
 
         // 结束上传
-        waitUntil(endUpload(context, fullId, metadata));
+        await endUpload(context, fullId, metadata);
 
     } catch (error) {
         console.log('Telegram upload error:', error.message);
@@ -589,7 +589,7 @@ async function uploadFileToExternal(context, fullId, metadata, returnLink) {
     }
 
     // 结束上传
-    waitUntil(endUpload(context, fullId, metadata));
+    await endUpload(context, fullId, metadata);
 
     // 返回结果
     return createResponse(
@@ -677,7 +677,7 @@ async function uploadFileToDiscord(context, fullId, metadata, returnLink) {
         }
 
         // 结束上传
-        waitUntil(endUpload(context, fullId, metadata));
+        await endUpload(context, fullId, metadata);
 
         // 返回成功响应
         return createResponse(
@@ -797,7 +797,7 @@ async function uploadFileToHuggingFace(context, fullId, metadata, returnLink) {
         }
 
         // 结束上传
-        waitUntil(endUpload(context, fullId, metadata));
+        await endUpload(context, fullId, metadata);
 
         // 返回成功响应
         return createResponse(
@@ -879,7 +879,7 @@ async function uploadFileToWebDAV(context, fullId, metadata, returnLink) {
             return createResponse('Error: Failed to write to database', { status: 500 });
         }
 
-        waitUntil(endUpload(context, fullId, metadata));
+        await endUpload(context, fullId, metadata);
 
         return createResponse(
             JSON.stringify([{ 'src': returnLink }]),

@@ -342,15 +342,25 @@ export async function purgeCDNCache(env, cdnUrl, url, normalizedFolder) {
 
 // 结束上传：清除缓存，维护索引
 export async function endUpload(context, fileId, metadata) {
-    const { env, url } = context;
+    const { env, url, waitUntil } = context;
 
     // 清除CDN缓存
     const cdnUrl = `https://${url.hostname}/file/${fileId}`;
     const normalizedFolder = sanitizeUploadFolder(url.searchParams.get('uploadFolder') || '');
-    await purgeCDNCache(env, cdnUrl, url, normalizedFolder);
+    const purgePromise = purgeCDNCache(env, cdnUrl, url, normalizedFolder);
+    if (typeof waitUntil === 'function') {
+        waitUntil(purgePromise);
+    } else {
+        await purgePromise;
+    }
 
     // 更新文件索引（索引更新时会自动计算容量统计）
-    await addFileToIndex(context, fileId, metadata);
+    const indexResult = await addFileToIndex(context, fileId, metadata);
+    if (!indexResult.success) {
+        throw new Error(indexResult.error || 'Update index failed');
+    }
+
+    return indexResult;
 }
 
 // 从 request 中解析 ip 地址

@@ -288,7 +288,7 @@ async function mergeR2ChunksInfo(context, uploadId, completedChunks, metadata) {
         await db.put(finalFileId, "", { metadata });
 
         // 结束上传
-        waitUntil(endUpload(context, finalFileId, metadata));
+        await endUpload(context, finalFileId, metadata);
 
         // 更新返回链接
         const returnFormat = url.searchParams.get('returnFormat') || 'default';
@@ -386,7 +386,7 @@ async function mergeS3ChunksInfo(context, uploadId, completedChunks, metadata) {
         await db.put(finalFileId, "", { metadata });
 
         // 异步结束上传
-        waitUntil(endUpload(context, finalFileId, metadata));
+        await endUpload(context, finalFileId, metadata);
 
         // 更新返回链接
         const returnFormat = url.searchParams.get('returnFormat') || 'default';
@@ -459,7 +459,7 @@ async function mergeTelegramChunksInfo(context, uploadId, completedChunks, metad
         await db.put(finalFileId, chunksData, { metadata });
 
         // 异步结束上传
-        waitUntil(endUpload(context, finalFileId, metadata));
+        await endUpload(context, finalFileId, metadata);
 
         // 生成返回链接
         const returnFormat = url.searchParams.get('returnFormat') || 'default';
@@ -533,7 +533,7 @@ async function mergeDiscordChunksInfo(context, uploadId, completedChunks, metada
         await db.put(finalFileId, chunksData, { metadata });
 
         // 异步结束上传
-        waitUntil(endUpload(context, finalFileId, metadata));
+        await endUpload(context, finalFileId, metadata);
 
         // 生成返回链接
         const returnFormat = url.searchParams.get('returnFormat') || 'default';

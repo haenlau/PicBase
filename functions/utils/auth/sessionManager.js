@@ -24,11 +24,11 @@ const COOKIE_NAMES = {
  * @param {string} [username] - 用户名（管理员登录时使用）
  * @returns {Promise<{token: string, cookie: string}>}
  */
-export async function createSession(env, authType, username = '') {
+export async function createSession(env, authType, username = '', request = null) {
     // 读取安全策略配置
     const securityConfig = await fetchSecurityConfig(env);
     const accessConfig = securityConfig.access || {};
-    const secure = accessConfig.sessionSecure ?? false;
+    const secure = shouldUseSecureCookie(accessConfig, request);
     const rawMaxAgeDays = authType === 'admin'
         ? (accessConfig.adminSessionMaxAge ?? 14)
         : (accessConfig.userSessionMaxAge ?? 14);
@@ -116,7 +116,7 @@ export async function validateAnySession(env, request) {
 export async function destroySession(env, request, authType) {
     // 读取安全策略配置
     const securityConfig = await fetchSecurityConfig(env);
-    const secure = securityConfig.access?.sessionSecure ?? false;
+    const secure = shouldUseSecureCookie(securityConfig.access || {}, request);
 
     const db = getDatabase(env);
 
@@ -222,4 +222,21 @@ function buildSessionCookie(name, token, maxAge, secure = false) {
         parts.push('Secure');
     }
     return parts.join('; ');
+}
+
+function shouldUseSecureCookie(accessConfig, request) {
+    if (accessConfig.sessionSecure === true) {
+        return true;
+    }
+
+    if (!request) {
+        return false;
+    }
+
+    try {
+        const url = new URL(request.url);
+        return url.protocol === 'https:';
+    } catch {
+        return false;
+    }
 }

@@ -1,6 +1,7 @@
 import { fetchSecurityConfig } from "../../utils/sysConfig.js";
 import { verifyPassword, rehashIfNeeded } from "../../utils/auth/passwordHash.js";
 import { createSession } from "../../utils/auth/sessionManager.js";
+import { checkLoginRateLimit, clearLoginFailures, recordLoginFailure } from "../../utils/auth/loginRateLimit.js";
 import { getDatabase } from "../../utils/databaseAdapter.js";
 
 export async function onRequestPost(context) {
@@ -8,6 +9,14 @@ export async function onRequestPost(context) {
 
     const jsonRequest = await request.json();
     const authCode = jsonRequest.authCode;
+    const rateLimitScope = 'user';
+    const rateLimit = await checkLoginRateLimit(env, request, rateLimitScope);
+    if (rateLimit.limited) {
+        return new Response('Too many login attempts', {
+            status: 429,
+            headers: { 'Retry-After': String(rateLimit.retryAfter) },
+        });
+    }
 
     // 读取安全设置
     let securityConfig;
@@ -23,6 +32,7 @@ export async function onRequestPost(context) {
     if (rightAuthCode !== undefined && rightAuthCode !== '') {
         const isValid = await verifyPassword(authCode, rightAuthCode);
         if (!isValid) {
+            await recordLoginFailure(env, request, rateLimitScope);
             return new Response('Unauthorized', { status: 401 });
         }
 
@@ -31,7 +41,8 @@ export async function onRequestPost(context) {
     }
 
     // 创建会话并通过 HttpOnly Cookie 返回
-    const { cookie } = await createSession(env, 'user');
+    await clearLoginFailures(env, request, rateLimitScope);
+    const { cookie } = await createSession(env, 'user', '', request);
 
     return new Response('Login success', {
         status: 200,

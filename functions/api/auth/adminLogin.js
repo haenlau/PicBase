@@ -1,12 +1,25 @@
 import { fetchSecurityConfig } from "../../utils/sysConfig.js";
 import { verifyPassword, rehashIfNeeded } from "../../utils/auth/passwordHash.js";
 import { createSession } from "../../utils/auth/sessionManager.js";
+import { checkLoginRateLimit, clearLoginFailures, recordLoginFailure } from "../../utils/auth/loginRateLimit.js";
 import { getDatabase } from "../../utils/databaseAdapter.js";
 
 export async function onRequestPost(context) {
     const { request, env } = context;
 
     const { username, password } = await request.json();
+    const rateLimitScope = 'admin';
+    const rateLimitIdentifier = '';
+    const rateLimit = await checkLoginRateLimit(env, request, rateLimitScope, rateLimitIdentifier);
+    if (rateLimit.limited) {
+        return new Response(JSON.stringify({ error: 'Too many login attempts' }), {
+            status: 429,
+            headers: {
+                'Content-Type': 'application/json',
+                'Retry-After': String(rateLimit.retryAfter),
+            },
+        });
+    }
 
     // 读取安全设置
     let securityConfig;
@@ -28,7 +41,7 @@ export async function onRequestPost(context) {
 
     // 管理员未配置，无需认证，直接创建会话
     if (!adminConfigured) {
-        const { cookie } = await createSession(env, 'admin');
+        const { cookie } = await createSession(env, 'admin', '', request);
         return new Response(JSON.stringify({ success: true }), {
             status: 200,
             headers: {
@@ -40,6 +53,7 @@ export async function onRequestPost(context) {
 
     // 如果设置了用户名，则验证用户名
     if (usernameConfigured && username !== adminUsername) {
+        await recordLoginFailure(env, request, rateLimitScope, rateLimitIdentifier);
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
             status: 401,
             headers: { 'Content-Type': 'application/json' },
@@ -50,6 +64,7 @@ export async function onRequestPost(context) {
     if (passwordConfigured) {
         const passwordMatch = await verifyPassword(password, adminPassword);
         if (!passwordMatch) {
+            await recordLoginFailure(env, request, rateLimitScope, rateLimitIdentifier);
             return new Response(JSON.stringify({ error: 'Unauthorized' }), {
                 status: 401,
                 headers: { 'Content-Type': 'application/json' },
@@ -61,7 +76,8 @@ export async function onRequestPost(context) {
     }
 
     // 创建会话并通过 HttpOnly Cookie 返回
-    const { cookie } = await createSession(env, 'admin');
+    await clearLoginFailures(env, request, rateLimitScope, rateLimitIdentifier);
+    const { cookie } = await createSession(env, 'admin', username || '', request);
 
     return new Response(JSON.stringify({ success: true }), {
         status: 200,

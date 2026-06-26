@@ -1269,7 +1269,7 @@ export async function uploadLargeFileToTelegram(context, file, fullId, metadata,
         await db.put(fullId, chunksData, { metadata });
 
         // 异步结束上传
-        waitUntil(endUpload(context, fullId, metadata));
+        await endUpload(context, fullId, metadata);
 
         return createResponse(
             JSON.stringify([{ 'src': returnLink }]),

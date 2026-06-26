@@ -132,7 +132,7 @@ export async function onRequestPost(context) {
             uploadConfig,
             url
         };
-        waitUntil(endUpload(uploadContext, fullId, metadata));
+        await endUpload(uploadContext, fullId, metadata);
 
         // 返回成功响应
         const returnLink = `/file/${fullId}`;
