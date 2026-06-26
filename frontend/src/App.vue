@@ -6,172 +6,96 @@
       :rail="rail"
       @click:rail="rail = !rail"
       permanent
-      color="surface"
       :width="240"
-      :rail-width="72"
+      :rail-width="64"
     >
       <!-- Logo区域 -->
-      <div class="pa-4 d-flex align-center" :class="{ 'justify-center': rail }">
-        <v-avatar size="40" rounded="lg" color="primary" class="flex-shrink-0">
-          <v-icon color="white">mdi-cloud-upload</v-icon>
-        </v-avatar>
-        <div v-if="!rail" class="ml-3">
-          <div class="text-subtitle-1 font-weight-bold">PicBase</div>
-          <div class="text-caption text-medium-emphasis">图床服务</div>
+      <div class="sidebar-logo" :class="{ 'justify-center': rail }">
+        <div class="logo-icon">
+          <v-icon size="20">mdi-cloud-upload</v-icon>
         </div>
+        <span v-if="!rail" class="logo-text">PicBase</span>
       </div>
 
-      <v-divider />
-
-      <!-- 导航菜单 - 统一间距 -->
-      <v-list nav density="comfortable" class="px-2 py-2 nav-list">
-        <v-list-item
-          v-if="isLoggedIn"
-          to="/"
-          :active="$route.path === '/'"
-          rounded="lg"
-          color="primary"
+      <!-- 导航菜单 -->
+      <div class="sidebar-nav">
+        <router-link
+          v-for="item in navItems"
+          :key="item.path"
+          :to="item.path"
           class="nav-item"
+          :class="{ active: isActive(item.path) }"
         >
-          <template #prepend>
-            <v-icon>mdi-cloud-upload-outline</v-icon>
-          </template>
-          <v-list-item-title>上传文件</v-list-item-title>
-        </v-list-item>
+          <v-icon size="20">{{ item.icon }}</v-icon>
+          <span v-if="!rail" class="nav-label">{{ item.label }}</span>
+        </router-link>
+      </div>
 
-        <v-list-item
-          v-if="isLoggedIn"
-          to="/files"
-          :active="$route.path === '/files'"
-          rounded="lg"
-          color="primary"
-          class="nav-item"
-        >
-          <template #prepend>
-            <v-icon>mdi-folder-outline</v-icon>
-          </template>
-          <v-list-item-title>文件管理</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          v-if="isLoggedIn"
-          to="/channels"
-          :active="$route.path === '/channels'"
-          rounded="lg"
-          color="primary"
-          class="nav-item"
-        >
-          <template #prepend>
-            <v-icon>mdi-cloud-outline</v-icon>
-          </template>
-          <v-list-item-title>渠道配置</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          v-if="isLoggedIn"
-          to="/settings"
-          :active="$route.path === '/settings'"
-          rounded="lg"
-          color="primary"
-          class="nav-item"
-        >
-          <template #prepend>
-            <v-icon>mdi-cog-outline</v-icon>
-          </template>
-          <v-list-item-title>安全设置</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          to="/help"
-          :active="$route.path === '/help'"
-          rounded="lg"
-          color="primary"
-          class="nav-item"
-        >
-          <template #prepend>
-            <v-icon>mdi-help-circle-outline</v-icon>
-          </template>
-          <v-list-item-title>配置说明</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          @click="toggleTheme"
-          rounded="lg"
-          class="nav-item"
-        >
-          <template #prepend>
-            <v-icon>{{ isDark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
-          </template>
-          <v-list-item-title>{{ isDark ? '浅色模式' : '深色模式' }}</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          v-if="isLoggedIn"
-          @click="handleLogout"
-          rounded="lg"
-          color="error"
-          class="nav-item"
-        >
-          <template #prepend>
-            <v-icon>mdi-logout</v-icon>
-          </template>
-          <v-list-item-title>退出登录</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          v-else
-          to="/login"
-          rounded="lg"
-          color="primary"
-          class="nav-item"
-        >
-          <template #prepend>
-            <v-icon>mdi-login</v-icon>
-          </template>
-          <v-list-item-title>登录</v-list-item-title>
-        </v-list-item>
-      </v-list>
+      <!-- 底部操作 -->
+      <div class="sidebar-footer">
+        <div class="nav-item" @click="toggleTheme">
+          <v-icon size="20">{{ isDark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
+          <span v-if="!rail" class="nav-label">{{ isDark ? '浅色模式' : '深色模式' }}</span>
+        </div>
+        
+        <div v-if="isLoggedIn" class="nav-item" @click="handleLogout">
+          <v-icon size="20">mdi-logout</v-icon>
+          <span v-if="!rail" class="nav-label">退出登录</span>
+        </div>
+        <router-link v-else to="/login" class="nav-item">
+          <v-icon size="20">mdi-login</v-icon>
+          <span v-if="!rail" class="nav-label">登录</span>
+        </router-link>
+      </div>
     </v-navigation-drawer>
 
     <!-- 顶部应用栏 (移动端) -->
-    <v-app-bar
-      class="d-lg-none"
-      color="surface"
-      elevation="0"
-      border
-    >
+    <v-app-bar class="d-lg-none" elevation="0">
       <v-app-bar-nav-icon @click="drawer = !drawer" />
-      <v-app-bar-title class="font-weight-bold">PicBase</v-app-bar-title>
+      <v-app-bar-title class="font-weight-600">PicBase</v-app-bar-title>
     </v-app-bar>
 
     <!-- 主内容区 -->
     <v-main>
       <router-view v-slot="{ Component }">
-        <v-fade-transition mode="out-in">
+        <transition name="fade" mode="out-in">
           <component :is="Component" />
-        </v-fade-transition>
+        </transition>
       </router-view>
     </v-main>
   </v-app>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useTheme } from 'vuetify'
 
 const router = useRouter()
+const route = useRoute()
 const theme = useTheme()
 const isDark = ref(false)
 const isLoggedIn = ref(false)
 const drawer = ref(true)
 const rail = ref(false)
 
+const navItems = computed(() => {
+  const items = [
+    { path: '/', icon: 'mdi-cloud-upload-outline', label: '上传文件' },
+    { path: '/files', icon: 'mdi-folder-outline', label: '文件管理' },
+    { path: '/channels', icon: 'mdi-cloud-outline', label: '渠道配置' },
+    { path: '/settings', icon: 'mdi-cog-outline', label: '安全设置' },
+    { path: '/help', icon: 'mdi-help-circle-outline', label: '配置说明' },
+  ]
+  return items
+})
+
 onMounted(() => {
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     isDark.value = true
     theme.global.name.value = 'darkTheme'
+    document.documentElement.setAttribute('data-theme', 'dark')
   }
   
   checkAuth()
@@ -197,9 +121,14 @@ function handleResize() {
   }
 }
 
+function isActive(path) {
+  return route.path === path
+}
+
 function toggleTheme() {
   isDark.value = !isDark.value
   theme.global.name.value = isDark.value ? 'darkTheme' : 'lightTheme'
+  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : '')
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
 
@@ -214,25 +143,80 @@ router.afterEach(() => {
 })
 </script>
 
-<style>
-.v-application {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+<style scoped>
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--border);
 }
 
-.v-navigation-drawer {
-  border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)) !important;
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
-.v-list-item--active {
-  background: rgba(var(--v-theme-primary), 0.12) !important;
+.logo-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-/* 统一导航项间距 */
-.nav-list .nav-item {
-  margin-bottom: 4px;
+.sidebar-nav {
+  padding: 12px 8px;
+  flex: 1;
 }
 
-.nav-list .nav-item:last-child {
-  margin-bottom: 0;
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.nav-label {
+  white-space: nowrap;
+}
+
+.sidebar-footer {
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

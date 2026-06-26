@@ -1,296 +1,266 @@
 <template>
-  <v-container fluid class="pa-4 pa-md-6">
-    <div class="mb-6">
-      <h1 class="text-h4 font-weight-bold">文件管理</h1>
-      <p class="text-body-1 text-medium-emphasis mt-1">管理上传的文件</p>
+  <div class="page-container">
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <h1 class="page-title">文件管理</h1>
+      <p class="page-subtitle">管理你上传的所有文件</p>
     </div>
 
     <!-- 工具栏 -->
-    <v-card class="mb-4">
-      <v-card-text>
-        <v-row align="center">
-          <v-col cols="12" md="4">
-            <v-text-field
-              v-model="searchQuery"
-              label="搜索文件"
-              prepend-inner-icon="mdi-magnify"
-              clearable
-              density="compact"
-              hide-details
-              @update:model-value="debouncedSearch"
-            />
-          </v-col>
-          <v-col cols="12" md="8">
-            <div class="d-flex align-center flex-wrap ga-2 justify-end">
-              <v-select
-                v-model="filterChannel"
-                :items="channelOptions"
-                label="渠道"
-                density="compact"
-                hide-details
-                style="min-width: 150px"
-              />
-              <v-btn-toggle v-model="viewMode" mandatory density="compact">
-                <v-btn value="grid" icon>
-                  <v-icon>mdi-view-grid</v-icon>
-                </v-btn>
-                <v-btn value="list" icon>
-                  <v-icon>mdi-view-list</v-icon>
-                </v-btn>
-              </v-btn-toggle>
-              <v-btn icon variant="text" @click="fetchFiles">
-                <v-icon>mdi-refresh</v-icon>
-              </v-btn>
-            </div>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <v-icon size="18" class="search-icon">mdi-magnify</v-icon>
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="search-input"
+            placeholder="搜索文件..."
+            @input="debouncedSearch"
+          />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <select v-model="filterChannel" class="toolbar-select">
+          <option value="">全部渠道</option>
+          <option v-for="ch in channelOptions" :key="ch" :value="ch">{{ ch }}</option>
+        </select>
+        <div class="view-toggle">
+          <button
+            class="toggle-btn"
+            :class="{ active: viewMode === 'grid' }"
+            @click="viewMode = 'grid'"
+          >
+            <v-icon size="18">mdi-view-grid</v-icon>
+          </button>
+          <button
+            class="toggle-btn"
+            :class="{ active: viewMode === 'list' }"
+            @click="viewMode = 'list'"
+          >
+            <v-icon size="18">mdi-view-list</v-icon>
+          </button>
+        </div>
+        <button class="btn-icon" @click="fetchFiles" :class="{ spinning: loading }">
+          <v-icon size="18">mdi-refresh</v-icon>
+        </button>
+      </div>
+    </div>
 
     <!-- 批量操作 -->
-    <v-slide-y-transition>
-      <v-card v-if="selectedFiles.length > 0" class="mb-4" color="primary" variant="tonal">
-        <v-card-text class="d-flex align-center justify-space-between">
-          <span>已选择 {{ selectedFiles.length }} 项</span>
-          <div>
-            <v-btn variant="text" size="small" class="mr-2" @click="copySelectedLinks">
-              <v-icon start>mdi-link</v-icon>
-              复制链接
-            </v-btn>
-            <v-btn variant="text" size="small" color="error" @click="confirmBatchDelete">
-              <v-icon start>mdi-delete</v-icon>
-              删除
-            </v-btn>
-            <v-btn variant="text" size="small" @click="selectedFiles = []">
-              取消
-            </v-btn>
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-slide-y-transition>
+    <transition name="fade">
+      <div v-if="selectedFiles.length > 0" class="batch-bar">
+        <span class="batch-info">已选择 {{ selectedFiles.length }} 项</span>
+        <div class="batch-actions">
+          <button class="btn-sm btn-secondary" @click="copySelectedLinks">
+            <v-icon size="14">mdi-link</v-icon>
+            复制链接
+          </button>
+          <button class="btn-sm btn-danger" @click="confirmBatchDelete">
+            <v-icon size="14">mdi-delete</v-icon>
+            删除
+          </button>
+          <button class="btn-sm btn-ghost" @click="selectedFiles = []">
+            取消
+          </button>
+        </div>
+      </div>
+    </transition>
 
     <!-- 网格视图 -->
-    <v-row v-if="viewMode === 'grid'">
-      <v-col v-if="loading" v-for="n in 8" :key="n" cols="6" sm="4" md="3" lg="2">
-        <v-skeleton-loader type="card" />
-      </v-col>
+    <div v-if="viewMode === 'grid'" class="file-grid">
+      <div v-if="loading" v-for="n in 8" :key="n" class="file-card-skeleton">
+        <div class="skeleton-image"></div>
+        <div class="skeleton-text"></div>
+        <div class="skeleton-text short"></div>
+      </div>
       
-      <v-col
+      <div
         v-for="file in files"
         :key="file.name"
-        cols="6"
-        sm="4"
-        md="3"
-        lg="2"
+        class="file-card"
+        :class="{ 'file-card--selected': isSelected(file) }"
+        @click="toggleSelect(file)"
       >
-        <v-card
-          class="file-card"
-          :class="{ 'file-card--selected': isSelected(file) }"
-          @click="toggleSelect(file)"
-        >
-          <div class="file-preview">
-            <v-img
-              v-if="isImage(file)"
-              :src="getFileUrl(file)"
-              height="120"
-              cover
-            >
-              <template #error>
-                <div class="d-flex align-center justify-center h-100">
-                  <v-icon size="48" color="grey">mdi-image-broken</v-icon>
-                </div>
-              </template>
-            </v-img>
-            <div v-else class="d-flex align-center justify-center" style="height: 120px">
-              <v-icon size="48" :color="getFileTypeColor(file)">
-                {{ getFileTypeIcon(file) }}
-              </v-icon>
-            </div>
-            <v-checkbox
-              :model-value="isSelected(file)"
-              @click.stop
-              @update:model-value="toggleSelect(file)"
-              hide-details
-              density="compact"
-              class="file-checkbox"
-            />
+        <div class="file-preview">
+          <img
+            v-if="isImage(file)"
+            :src="getFileUrl(file)"
+            :alt="file.name"
+            class="file-image"
+            loading="lazy"
+          />
+          <div v-else class="file-icon-large">
+            <v-icon size="32" :color="getFileTypeColor(file)">
+              {{ getFileTypeIcon(file) }}
+            </v-icon>
           </div>
-          <v-card-text class="pa-2">
-            <p class="text-caption text-truncate">{{ file.name }}</p>
-            <p class="text-caption text-medium-emphasis">
-              {{ file.metadata?.Channel || '-' }}
-            </p>
-          </v-card-text>
-          <v-card-actions class="pa-1 justify-end">
-            <v-btn icon size="x-small" variant="text" @click.stop="showLink(file)">
-              <v-icon size="small">mdi-link</v-icon>
-            </v-btn>
-            <v-btn icon size="x-small" variant="text" color="error" @click.stop="confirmDelete(file)">
-              <v-icon size="small">mdi-delete-outline</v-icon>
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-col>
-    </v-row>
+          
+          <!-- 悬停操作 -->
+          <div class="file-overlay">
+            <button class="overlay-btn" @click.stop="showLink(file)" title="复制链接">
+              <v-icon size="18">mdi-link</v-icon>
+            </button>
+            <button class="overlay-btn" @click.stop="previewFile(file)" title="预览">
+              <v-icon size="18">mdi-eye</v-icon>
+            </button>
+            <button class="overlay-btn overlay-btn-danger" @click.stop="confirmDelete(file)" title="删除">
+              <v-icon size="18">mdi-delete</v-icon>
+            </button>
+          </div>
+          
+          <!-- 选中状态 -->
+          <div v-if="isSelected(file)" class="file-check">
+            <v-icon size="16">mdi-check</v-icon>
+          </div>
+        </div>
+        
+        <div class="file-info">
+          <div class="file-name">{{ file.name }}</div>
+          <div class="file-meta">
+            <span class="file-size">{{ formatFileSize(getFileSize(file)) }}</span>
+            <span class="file-dot">·</span>
+            <span class="file-channel">{{ file.metadata?.Channel || '-' }}</span>
+            <span class="file-dot">·</span>
+            <span class="file-time">{{ formatTime(file.metadata?.TimeStamp) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 列表视图 -->
-    <v-card v-else>
-      <v-table>
-        <thead>
-          <tr>
-            <th width="40">
-              <v-checkbox
-                :model-value="allSelected"
-                @update:model-value="toggleSelectAll"
-                hide-details
-                density="compact"
-              />
-            </th>
-            <th>文件名</th>
-            <th width="100">渠道</th>
-            <th width="120">时间</th>
-            <th width="100">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="5" class="text-center py-8">
-              <v-progress-circular indeterminate color="primary" />
-            </td>
-          </tr>
-          <tr
-            v-for="file in files"
-            :key="file.name"
-            :class="{ 'bg-primary-lighten-4': isSelected(file) }"
-            @click="toggleSelect(file)"
-            style="cursor: pointer"
-          >
-            <td @click.stop>
-              <v-checkbox
-                :model-value="isSelected(file)"
-                @update:model-value="toggleSelect(file)"
-                hide-details
-                density="compact"
-              />
-            </td>
-            <td>
-              <div class="d-flex align-center ga-2">
-                <v-icon :color="getFileTypeColor(file)" size="20">
-                  {{ getFileTypeIcon(file) }}
-                </v-icon>
-                <span class="text-truncate">{{ file.name }}</span>
-              </div>
-            </td>
-            <td>
-              <v-chip size="small" variant="tonal">
-                {{ file.metadata?.Channel || '-' }}
-              </v-chip>
-            </td>
-            <td class="text-caption text-medium-emphasis">
-              {{ formatTime(file.metadata?.TimeStamp) }}
-            </td>
-            <td @click.stop>
-              <v-btn icon size="small" variant="text" @click="showLink(file)">
-                <v-icon>mdi-link</v-icon>
-              </v-btn>
-              <v-btn icon size="small" variant="text" color="error" @click="confirmDelete(file)">
-                <v-icon>mdi-delete-outline</v-icon>
-              </v-btn>
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
-    </v-card>
+    <div v-else class="file-list">
+      <div class="list-header">
+        <div class="list-col list-col-check">
+          <input
+            type="checkbox"
+            :checked="allSelected"
+            @change="toggleSelectAll"
+            class="checkbox"
+          />
+        </div>
+        <div class="list-col list-col-name">文件名</div>
+        <div class="list-col list-col-size">大小</div>
+        <div class="list-col list-col-channel">渠道</div>
+        <div class="list-col list-col-time">时间</div>
+        <div class="list-col list-col-actions">操作</div>
+      </div>
+      
+      <div v-if="loading" class="list-loading">
+        <div class="spinner"></div>
+      </div>
+      
+      <div
+        v-for="file in files"
+        :key="file.name"
+        class="list-item"
+        :class="{ 'list-item--selected': isSelected(file) }"
+        @click="toggleSelect(file)"
+      >
+        <div class="list-col list-col-check" @click.stop>
+          <input
+            type="checkbox"
+            :checked="isSelected(file)"
+            @change="toggleSelect(file)"
+            class="checkbox"
+          />
+        </div>
+        <div class="list-col list-col-name">
+          <v-icon size="16" :color="getFileTypeColor(file)" class="mr-2">
+            {{ getFileTypeIcon(file) }}
+          </v-icon>
+          <span class="text-truncate">{{ file.name }}</span>
+        </div>
+        <div class="list-col list-col-size">{{ formatFileSize(getFileSize(file)) }}</div>
+        <div class="list-col list-col-channel">
+          <span class="channel-badge">{{ file.metadata?.Channel || '-' }}</span>
+        </div>
+        <div class="list-col list-col-time">{{ formatTime(file.metadata?.TimeStamp) }}</div>
+        <div class="list-col list-col-actions" @click.stop>
+          <button class="btn-icon btn-icon-sm" @click="showLink(file)">
+            <v-icon size="14">mdi-link</v-icon>
+          </button>
+          <button class="btn-icon btn-icon-sm btn-icon-danger" @click="confirmDelete(file)">
+            <v-icon size="14">mdi-delete</v-icon>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 空状态 -->
-    <v-card v-if="files.length === 0 && !loading" class="text-center py-12">
-      <v-icon size="64" color="grey" class="mb-4">mdi-folder-open</v-icon>
-      <h3 class="text-h6 text-medium-emphasis mb-2">暂无文件</h3>
-      <p class="text-body-2 text-medium-emphasis mb-4">上传一些文件开始使用吧</p>
-      <v-btn color="primary" to="/">
-        <v-icon start>mdi-cloud-upload</v-icon>
+    <div v-if="files.length === 0 && !loading" class="empty-state">
+      <div class="empty-icon">
+        <v-icon size="48">mdi-folder-open</v-icon>
+      </div>
+      <h3 class="empty-title">暂无文件</h3>
+      <p class="empty-text">上传一些文件开始使用吧</p>
+      <button class="btn-primary" @click="$router.push('/')">
+        <v-icon size="16">mdi-cloud-upload</v-icon>
         去上传
-      </v-btn>
-    </v-card>
+      </button>
+    </div>
 
     <!-- 加载更多 -->
-    <div v-if="hasMore && !loading" class="text-center mt-4">
-      <v-btn variant="tonal" @click="loadMore">
-        <v-icon start>mdi-chevron-down</v-icon>
+    <div v-if="hasMore && !loading" class="load-more">
+      <button class="btn-secondary" @click="loadMore">
         加载更多
-      </v-btn>
+      </button>
     </div>
 
     <!-- 链接弹窗 -->
-    <v-dialog v-model="showLinkDialog" max-width="500">
-      <v-card>
-        <v-card-title class="d-flex align-center justify-space-between">
-          <div class="d-flex align-center">
-            <v-icon class="mr-2">mdi-link</v-icon>
-            <span>复制链接</span>
+    <div v-if="showLinkDialog" class="dialog-overlay" @click="showLinkDialog = false">
+      <div class="dialog" @click.stop>
+        <div class="dialog-header">
+          <h3 class="dialog-title">复制链接</h3>
+          <button class="btn-icon btn-icon-ghost" @click="showLinkDialog = false">
+            <v-icon size="20">mdi-close</v-icon>
+          </button>
+        </div>
+        <div class="dialog-content">
+          <div v-for="item in linkFormats" :key="item.label" class="link-item">
+            <div class="link-info">
+              <span class="link-label">{{ item.label }}</span>
+              <span class="link-value">{{ item.value }}</span>
+            </div>
+            <button
+              class="btn-sm"
+              :class="copiedLabel === item.label ? 'btn-success' : 'btn-secondary'"
+              @click="copyLink(item)"
+            >
+              {{ copiedLabel === item.label ? '已复制' : '复制' }}
+            </button>
           </div>
-          <v-btn icon variant="text" size="small" @click="showLinkDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-        <v-divider />
-        <v-card-text class="pa-0">
-          <v-list>
-            <v-list-item v-for="item in linkFormats" :key="item.label" class="py-3">
-              <template #prepend>
-                <v-icon :color="item.color" size="20">{{ item.icon }}</v-icon>
-              </template>
-              <v-list-item-title class="text-body-2 font-weight-medium">
-                {{ item.label }}
-              </v-list-item-title>
-              <v-list-item-subtitle class="text-caption text-truncate">
-                {{ item.value }}
-              </v-list-item-subtitle>
-              <template #append>
-                <v-btn
-                  size="small"
-                  variant="tonal"
-                  :color="copiedLabel === item.label ? 'success' : undefined"
-                  @click="copyLink(item)"
-                >
-                  <v-icon start size="small">
-                    {{ copiedLabel === item.label ? 'mdi-check' : 'mdi-content-copy' }}
-                  </v-icon>
-                  {{ copiedLabel === item.label ? '已复制' : '复制' }}
-                </v-btn>
-              </template>
-            </v-list-item>
-          </v-list>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+        </div>
+      </div>
+    </div>
 
     <!-- 确认弹窗 -->
-    <v-dialog v-model="showConfirm" max-width="400">
-      <v-card>
-        <v-card-title class="d-flex align-center">
-          <v-icon color="error" class="mr-2">mdi-alert</v-icon>
-          {{ confirmTitle }}
-        </v-card-title>
-        <v-card-text>{{ confirmMessage }}</v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn @click="showConfirm = false">取消</v-btn>
-          <v-btn color="error" @click="handleConfirm">确定</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <div v-if="showConfirm" class="dialog-overlay" @click="showConfirm = false">
+      <div class="dialog dialog-sm" @click.stop>
+        <div class="dialog-header">
+          <h3 class="dialog-title">{{ confirmTitle }}</h3>
+        </div>
+        <div class="dialog-content">
+          <p class="confirm-text">{{ confirmMessage }}</p>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-ghost" @click="showConfirm = false">取消</button>
+          <button class="btn-danger" @click="handleConfirm">确定</button>
+        </div>
+      </div>
+    </div>
 
-    <!-- Snackbar -->
-    <v-snackbar v-model="snackbar" :color="snackbarColor" timeout="3000" location="bottom right">
-      {{ snackbarText }}
-    </v-snackbar>
-  </v-container>
+    <!-- Toast -->
+    <div v-if="toast.show" class="toast" :class="`toast-${toast.type}`">
+      <v-icon size="16">{{ toast.icon }}</v-icon>
+      <span>{{ toast.message }}</span>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { formatTime, getFileType, getFileIcon, getFileColor, copyToClipboard, debounce } from '@/utils/helpers'
+import { formatTime, formatFileSize, getFileType, getFileIcon, getFileColor, copyToClipboard, debounce } from '@/utils/helpers'
 import api from '@/utils/api'
 
 const viewMode = ref('grid')
@@ -313,16 +283,14 @@ const confirmMessage = ref('')
 const confirmAction = ref(null)
 const deleteTarget = ref(null)
 
-const snackbar = ref(false)
-const snackbarText = ref('')
-const snackbarColor = ref('success')
+const toast = ref({ show: false, message: '', type: 'success', icon: 'mdi-check' })
 
 const channelOptions = computed(() => {
   const channels = new Set()
   files.value.forEach(f => {
     if (f.metadata?.Channel) channels.add(f.metadata.Channel)
   })
-  return ['全部', ...Array.from(channels)]
+  return Array.from(channels)
 })
 
 const allSelected = computed(() => {
@@ -333,10 +301,10 @@ const linkFormats = computed(() => {
   const url = linkFile.value.url
   const name = linkFile.value.name
   return [
-    { label: '直链', icon: 'mdi-link', color: 'primary', value: url },
-    { label: 'Markdown', icon: 'mdi-language-markdown', color: 'success', value: `![${name}](${url})` },
-    { label: 'HTML', icon: 'mdi-language-html5', color: 'info', value: `<img src="${url}" alt="${name}" />` },
-    { label: 'BBCode', icon: 'mdi-code-brackets', color: 'warning', value: `[img]${url}[/img]` }
+    { label: '直链', value: url },
+    { label: 'Markdown', value: `![${name}](${url})` },
+    { label: 'HTML', value: `<img src="${url}" alt="${name}" />` },
+    { label: 'BBCode', value: `[img]${url}[/img]` }
   ]
 })
 
@@ -364,7 +332,7 @@ async function fetchFiles() {
       count: pageSize.value
     }
     if (searchQuery.value) params.search = searchQuery.value
-    if (filterChannel.value && filterChannel.value !== '全部') params.channel = filterChannel.value
+    if (filterChannel.value) params.channel = filterChannel.value
     
     const data = await api.get('/api/manage/list?' + new URLSearchParams(params))
     
@@ -376,7 +344,7 @@ async function fetchFiles() {
     
     hasMore.value = (data.files || []).length === pageSize.value
   } catch (err) {
-    showMessage('加载失败', 'error')
+    showToast('加载失败', 'error')
   } finally {
     loading.value = false
   }
@@ -385,6 +353,13 @@ async function fetchFiles() {
 function loadMore() {
   page.value++
   fetchFiles()
+}
+
+function getFileSize(file) {
+  const sizeStr = file.metadata?.FileSize
+  if (!sizeStr) return 0
+  const num = parseFloat(sizeStr)
+  return num < 1000 ? num * 1024 * 1024 : num
 }
 
 function isImage(file) {
@@ -436,11 +411,17 @@ function showLink(file) {
   showLinkDialog.value = true
 }
 
+function previewFile(file) {
+  if (isImage(file)) {
+    window.open(getFileUrl(file), '_blank')
+  }
+}
+
 async function copyLink(item) {
   const success = await copyToClipboard(item.value)
   if (success) {
     copiedLabel.value = item.label
-    showMessage('已复制到剪贴板', 'success')
+    showToast('已复制到剪贴板', 'success')
     setTimeout(() => {
       if (copiedLabel.value === item.label) {
         copiedLabel.value = ''
@@ -453,7 +434,7 @@ async function copySelectedLinks() {
   const links = selectedFiles.value.map(f => window.location.origin + '/file/' + f.name).join('\n')
   const success = await copyToClipboard(links)
   if (success) {
-    showMessage(`已复制 ${selectedFiles.value.length} 个链接`, 'success')
+    showToast(`已复制 ${selectedFiles.value.length} 个链接`, 'success')
   }
 }
 
@@ -488,9 +469,9 @@ async function deleteFile(file) {
     await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
     files.value = files.value.filter(f => f.name !== file.name)
     selectedFiles.value = selectedFiles.value.filter(f => f.name !== file.name)
-    showMessage('删除成功', 'success')
+    showToast('删除成功', 'success')
   } catch (err) {
-    showMessage('删除失败', 'error')
+    showToast('删除失败', 'error')
   }
 }
 
@@ -507,39 +488,798 @@ async function batchDelete() {
   
   files.value = files.value.filter(f => !selectedFiles.value.some(s => s.name === f.name))
   selectedFiles.value = []
-  showMessage(`成功删除 ${successCount} 个文件`, 'success')
+  showToast(`成功删除 ${successCount} 个文件`, 'success')
 }
 
-function showMessage(text, color = 'success') {
-  snackbarText.value = text
-  snackbarColor.value = color
-  snackbar.value = true
+function showToast(message, type = 'success') {
+  const icons = {
+    success: 'mdi-check-circle',
+    error: 'mdi-alert-circle',
+    warning: 'mdi-alert'
+  }
+  toast.value = { show: true, message, type, icon: icons[type] || 'mdi-information' }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
 }
 </script>
 
 <style scoped>
-.file-card {
-  cursor: pointer;
-  transition: all 0.2s ease;
+.page-container {
+  padding: var(--space-2xl);
+}
+
+.page-header {
+  margin-bottom: var(--space-xl);
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* 工具栏 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.toolbar-left {
+  flex: 1;
+  min-width: 200px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.search-box {
   position: relative;
+  max-width: 320px;
+  width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.toolbar-select {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+
+.view-toggle {
+  display: flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.toggle-btn.active {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* 批量操作 */
+.batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.batch-info {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.batch-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* 按钮 */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 16px;
+  background: var(--error);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 16px;
+  background: var(--success);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-icon-ghost {
+  background: transparent;
+  border: none;
+}
+
+.btn-icon-ghost:hover {
+  background: var(--bg-hover);
+}
+
+.btn-icon-sm {
+  width: 28px;
+  height: 28px;
+}
+
+.btn-icon-danger {
+  color: var(--error);
+}
+
+.btn-icon-danger:hover {
+  background: var(--error-light);
+}
+
+/* 网格视图 */
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-lg);
+}
+
+.file-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition-normal);
 }
 
 .file-card:hover {
-  transform: translateY(-2px);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .file-card--selected {
-  border: 2px solid rgb(var(--v-theme-primary));
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-light);
 }
 
 .file-preview {
   position: relative;
+  aspect-ratio: 1;
+  background: var(--bg-tertiary);
   overflow: hidden;
 }
 
-.file-checkbox {
+.file-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-icon-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.file-overlay {
   position: absolute;
-  top: 4px;
-  left: 4px;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.file-card:hover .file-overlay {
+  opacity: 1;
+}
+
+.overlay-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.overlay-btn:hover {
+  transform: scale(1.1);
+}
+
+.overlay-btn-danger {
+  background: var(--error);
+  color: white;
+}
+
+.file-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--radius-full);
+}
+
+.file-info {
+  padding: var(--space-md);
+}
+
+.file-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+
+.file-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.file-dot {
+  color: var(--border);
+}
+
+/* 列表视图 */
+.file-list {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item:hover {
+  background: var(--bg-hover);
+}
+
+.list-item--selected {
+  background: var(--accent-light);
+}
+
+.list-col {
+  display: flex;
+  align-items: center;
+}
+
+.list-col-check {
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.list-col-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.list-col-size {
+  width: 80px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.list-col-channel {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.list-col-time {
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.list-col-actions {
+  width: 80px;
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: flex-end;
+}
+
+.channel-badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xl);
+  text-align: center;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: 50%;
+  margin-bottom: var(--space-lg);
+  color: var(--text-tertiary);
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+}
+
+/* 加载更多 */
+.load-more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+/* 弹窗 */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+.dialog {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeInUp 0.2s ease;
+}
+
+.dialog-sm {
+  max-width: 400px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dialog-content {
+  padding: var(--space-lg);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.link-item:last-child {
+  border-bottom: none;
+}
+
+.link-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.link-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.link-value {
+  display: block;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+.confirm-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 14px;
+  z-index: 1001;
+  animation: fadeInUp 0.2s ease;
+}
+
+.toast-success {
+  border-left: 3px solid var(--success);
+  color: var(--success);
+}
+
+.toast-error {
+  border-left: 3px solid var(--error);
+  color: var(--error);
+}
+
+/* 骨架屏 */
+.file-card-skeleton {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.skeleton-image {
+  aspect-ratio: 1;
+  background: var(--bg-tertiary);
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-text {
+  height: 16px;
+  margin: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-text.short {
+  width: 60%;
+  margin-top: 0;
+}
+
+/* 加载动画 */
+.list-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* 动画 */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .page-container {
+    padding: var(--space-lg);
+  }
+  
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .toolbar-right {
+    justify-content: space-between;
+  }
+  
+  .file-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  
+  .list-col-size,
+  .list-col-time {
+    display: none;
+  }
 }
 </style>

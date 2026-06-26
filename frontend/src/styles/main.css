@@ -1,4 +1,81 @@
-/* ===== PicBase v3 - Vuetify Material Design 3 ===== */
+/* ===== PicBase v3 - 高级感设计系统 ===== */
+
+/* CSS 变量 */
+:root {
+  /* 浅色模式颜色 */
+  --bg-primary: #FAFAFA;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F5F5F5;
+  --bg-hover: #F0F0F0;
+  
+  --text-primary: #18181B;
+  --text-secondary: #71717A;
+  --text-tertiary: #A1A1AA;
+  
+  --border: #E4E4E7;
+  --border-hover: #D4D4D8;
+  
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-light: #EFF6FF;
+  
+  --success: #16A34A;
+  --success-light: #F0FDF4;
+  --error: #DC2626;
+  --error-light: #FEF2F2;
+  --warning: #D97706;
+  --warning-light: #FFFBEB;
+  
+  /* 间距 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  /* 过渡 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+}
+
+/* 深色模式 */
+[data-theme="dark"] {
+  --bg-primary: #09090B;
+  --bg-secondary: #18181B;
+  --bg-tertiary: #27272A;
+  --bg-hover: #2A2A2E;
+  
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-tertiary: #71717A;
+  
+  --border: #27272A;
+  --border-hover: #3F3F46;
+  
+  --accent: #3B82F6;
+  --accent-hover: #60A5FA;
+  --accent-light: #1E3A5F;
+  
+  --success: #22C55E;
+  --success-light: #14532D;
+  --error: #EF4444;
+  --error-light: #7F1D1D;
+  --warning: #F59E0B;
+  --warning-light: #78350F;
+}
 
 /* 全局样式 */
 * {
@@ -9,19 +86,85 @@
 
 html, body {
   height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 #app {
   min-height: 100vh;
 }
 
+/* Vuetify 主题覆盖 */
+.v-application {
+  font-family: inherit !important;
+}
+
+.v-navigation-drawer {
+  border-right: 1px solid var(--border) !important;
+  background: var(--bg-secondary) !important;
+}
+
+.v-app-bar {
+  background: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.v-main {
+  background: var(--bg-primary) !important;
+}
+
+/* 卡片样式 */
+.v-card {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--bg-secondary) !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: all var(--transition-normal) !important;
+}
+
+.v-card:hover {
+  border-color: var(--border-hover) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* 按钮样式 */
+.v-btn {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* 输入框样式 */
+.v-field {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* 导航项样式 */
+.v-list-item {
+  border-radius: var(--radius-sm) !important;
+  margin-bottom: var(--space-xs) !important;
+  min-height: 40px !important;
+}
+
+.v-list-item--active {
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+}
+
 /* 动画 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -29,39 +172,29 @@ html, body {
   }
 }
 
-@keyframes scaleIn {
+@keyframes slideIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateX(-10px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateX(0);
   }
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 页面过渡 */
 .fade-enter-active {
-  animation: fadeInUp 0.3s ease;
+  animation: fadeIn 0.2s ease;
 }
 
 .fade-leave-active {
-  animation: fadeInUp 0.3s ease reverse;
+  animation: fadeIn 0.2s ease reverse;
 }
 
 /* 滚动条 */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -69,24 +202,21 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  background: var(--border);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--text-tertiary);
 }
 
 /* 选择文字 */
 ::selection {
-  background: rgba(103, 80, 164, 0.3);
+  background: var(--accent);
+  color: white;
 }
 
 /* 工具类 */
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
 .text-truncate {
   overflow: hidden;
   text-overflow: ellipsis;
