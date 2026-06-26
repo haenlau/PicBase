@@ -24,12 +24,33 @@
           </div>
           <div class="form-group">
             <label class="form-label">密码</label>
-            <input
-              v-model="securitySettings.password"
-              type="password"
-              class="form-input"
-              placeholder="留空表示不修改"
-            />
+            <div class="password-input">
+              <input
+                v-model="securitySettings.password"
+                :type="showPassword ? 'text' : 'password'"
+                class="form-input"
+                placeholder="留空表示不修改"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                @click="showPassword = !showPassword"
+              >
+                <v-icon size="18">{{ showPassword ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+              </button>
+            </div>
+            <div v-if="securitySettings.password" class="password-strength">
+              <div class="strength-bar">
+                <div
+                  class="strength-fill"
+                  :class="passwordStrength.class"
+                  :style="{ width: passwordStrength.percent + '%' }"
+                ></div>
+              </div>
+              <span class="strength-text" :class="passwordStrength.class">
+                {{ passwordStrength.text }}
+              </span>
+            </div>
           </div>
           <button class="btn-primary" @click="saveSecurity" :disabled="saving">
             <v-icon v-if="saving" size="16" class="spinning">mdi-loading</v-icon>
@@ -78,7 +99,10 @@
 
           <div class="warning-box">
             <v-icon size="16" color="warning">mdi-alert</v-icon>
-            <p><strong>注意：</strong>如果忘记密码，需要在 Cloudflare Dashboard 中删除 D1 数据库的 <code>manage@sysConfig@security</code> 记录来重置。</p>
+            <div>
+              <p><strong>忘记密码？</strong></p>
+              <p>在 Cloudflare Dashboard 中进入你的 Pages 项目，找到绑定的 KV 或 D1 数据库，删除键名为 <code>manage@sysConfig@security</code> 的记录即可重置。</p>
+            </div>
           </div>
         </div>
       </div>
@@ -93,16 +117,35 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '@/utils/api'
 
 const saving = ref(false)
+const showPassword = ref(false)
 const securitySettings = ref({
   username: '',
   password: ''
 })
 
 const toast = ref({ show: false, message: '', type: 'success', icon: 'mdi-check' })
+
+// 密码强度计算
+const passwordStrength = computed(() => {
+  const pwd = securitySettings.value.password
+  if (!pwd) return { percent: 0, class: '', text: '' }
+  
+  let score = 0
+  if (pwd.length >= 8) score += 25
+  if (pwd.length >= 12) score += 15
+  if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score += 20
+  if (/\d/.test(pwd)) score += 20
+  if (/[^a-zA-Z0-9]/.test(pwd)) score += 20
+  
+  if (score < 30) return { percent: score, class: 'strength-weak', text: '弱' }
+  if (score < 60) return { percent: score, class: 'strength-medium', text: '中等' }
+  if (score < 80) return { percent: score, class: 'strength-good', text: '良好' }
+  return { percent: score, class: 'strength-strong', text: '强' }
+})
 
 onMounted(() => {
   fetchSecurity()
@@ -132,6 +175,8 @@ async function saveSecurity() {
       }
     })
     showToast('保存成功', 'success')
+    // 清空密码字段
+    securitySettings.value.password = ''
   } catch (err) {
     showToast('保存失败', 'error')
   } finally {
@@ -223,7 +268,7 @@ function showToast(message, type = 'success') {
 
 .form-input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -241,6 +286,71 @@ function showToast(message, type = 'success') {
 .form-input::placeholder {
   color: var(--text-tertiary);
 }
+
+.password-input {
+  position: relative;
+}
+
+.password-input .form-input {
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  color: var(--text-secondary);
+}
+
+/* 密码强度 */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: all var(--transition-normal);
+}
+
+.strength-weak { background: var(--error); }
+.strength-medium { background: var(--warning); }
+.strength-good { background: var(--info); }
+.strength-strong { background: var(--success); }
+
+.strength-text {
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 40px;
+}
+
+.strength-weak { color: var(--error); }
+.strength-medium { color: var(--warning); }
+.strength-good { color: var(--info); }
+.strength-strong { color: var(--success); }
 
 /* 信息列表 */
 .info-list {
@@ -308,11 +418,20 @@ function showToast(message, type = 'success') {
   line-height: 1.5;
 }
 
+.warning-box p {
+  margin: 0;
+}
+
+.warning-box p + p {
+  margin-top: var(--space-xs);
+}
+
 .warning-box code {
   background: var(--bg-tertiary);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 12px;
+  font-family: monospace;
 }
 
 /* 按钮 */
@@ -320,7 +439,7 @@ function showToast(message, type = 'success') {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 8px 16px;
+  padding: 10px 20px;
   background: var(--accent);
   color: white;
   border: none;
