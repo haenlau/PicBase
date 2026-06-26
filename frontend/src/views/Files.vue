@@ -541,7 +541,8 @@ async function fetchFiles() {
   try {
     const params = {
       start: page.value * pageSize.value,
-      count: pageSize.value
+      count: pageSize.value,
+      _t: Date.now() // 添加时间戳防止缓存
     }
     if (currentDir.value) params.dir = currentDir.value
     if (searchQuery.value) params.search = searchQuery.value
@@ -825,28 +826,41 @@ async function handleConfirm() {
 
 async function deleteFile(file) {
   try {
-    await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
-    // 立即从列表中移除
-    files.value = files.value.filter(f => f.name !== file.name)
-    selectedFiles.value = selectedFiles.value.filter(f => f.name !== file.name)
+    // 立即从列表中移除（乐观更新）
+    const fileName = file.name
+    files.value = files.value.filter(f => f.name !== fileName)
+    selectedFiles.value = selectedFiles.value.filter(f => f.name !== fileName)
+    
+    // 然后调用 API
+    await api.del('/api/manage/delete/' + encodeURIComponent(fileName))
     showToast('删除成功', 'success')
   } catch (err) {
+    // 如果失败，需要回滚（重新加载）
     showToast('删除失败', 'error')
+    fetchFiles()
   }
 }
 
 async function deleteFolder(dir) {
   try {
     // 删除文件夹需要删除里面的所有文件
-    const data = await api.get('/api/manage/list?count=-1&dir=' + dir)
+    // 添加时间戳防止缓存
+    const timestamp = Date.now()
+    const data = await api.get('/api/manage/list?count=-1&dir=' + encodeURIComponent(dir) + '&_t=' + timestamp)
     const filesToDelete = data.files || []
     
     for (const file of filesToDelete) {
       await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
     }
     
+    // 立即从本地列表中移除文件夹
+    const dirName = dir.endsWith('/') ? dir : dir + '/'
+    directories.value = directories.value.filter(d => d !== dir && d !== dirName)
+    
+    // 如果文件夹里的文件也在当前列表中，也要移除
+    files.value = files.value.filter(f => !f.name.startsWith(dirName))
+    
     showToast('文件夹删除成功', 'success')
-    fetchFiles()
   } catch (err) {
     showToast('删除文件夹失败', 'error')
   }
