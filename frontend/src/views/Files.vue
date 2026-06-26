@@ -67,6 +67,22 @@
       </div>
     </transition>
 
+    <!-- 面包屑导航 -->
+    <div v-if="currentDir" class="breadcrumb">
+      <button class="breadcrumb-item" @click="navigateToDir('')">
+        <v-icon size="16">mdi-home</v-icon>
+      </button>
+      <template v-for="(part, index) in currentDir.split('/').filter(Boolean)" :key="index">
+        <span class="breadcrumb-separator">/</span>
+        <button
+          class="breadcrumb-item"
+          @click="navigateToDir(currentDir.split('/').filter(Boolean).slice(0, index + 1).join('/') + '/')"
+        >
+          {{ part }}
+        </button>
+      </template>
+    </div>
+
     <!-- 网格视图 -->
     <div v-if="viewMode === 'grid'" class="file-grid">
       <div v-if="loading" v-for="n in 8" :key="n" class="file-card-skeleton">
@@ -75,6 +91,27 @@
         <div class="skeleton-text short"></div>
       </div>
       
+      <!-- 目录 -->
+      <div
+        v-for="dir in directories"
+        :key="dir"
+        class="file-card directory-card"
+        @click="navigateToDir(dir)"
+      >
+        <div class="file-preview">
+          <div class="file-icon-large">
+            <v-icon size="48" color="warning">mdi-folder</v-icon>
+          </div>
+        </div>
+        <div class="file-info">
+          <div class="file-name">{{ getDirName(dir) }}</div>
+          <div class="file-meta">
+            <span class="file-channel">文件夹</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 文件 -->
       <div
         v-for="file in files"
         :key="file.name"
@@ -150,6 +187,25 @@
         <div class="spinner"></div>
       </div>
       
+      <!-- 目录 -->
+      <div
+        v-for="dir in directories"
+        :key="dir"
+        class="list-item directory-item"
+        @click="navigateToDir(dir)"
+      >
+        <div class="list-col list-col-check"></div>
+        <div class="list-col list-col-name">
+          <v-icon size="16" color="warning" class="mr-2">mdi-folder</v-icon>
+          <span>{{ getDirName(dir) }}</span>
+        </div>
+        <div class="list-col list-col-size">-</div>
+        <div class="list-col list-col-channel">文件夹</div>
+        <div class="list-col list-col-time">-</div>
+        <div class="list-col list-col-actions"></div>
+      </div>
+      
+      <!-- 文件 -->
       <div
         v-for="file in files"
         :key="file.name"
@@ -266,6 +322,8 @@ import api from '@/utils/api'
 const viewMode = ref('grid')
 const loading = ref(false)
 const files = ref([])
+const directories = ref([])
+const currentDir = ref('')
 const selectedFiles = ref([])
 const searchQuery = ref('')
 const filterChannel = ref('')
@@ -331,6 +389,7 @@ async function fetchFiles() {
       start: page.value * pageSize.value,
       count: pageSize.value
     }
+    if (currentDir.value) params.dir = currentDir.value
     if (searchQuery.value) params.search = searchQuery.value
     if (filterChannel.value) params.channel = filterChannel.value
     
@@ -338,6 +397,7 @@ async function fetchFiles() {
     
     if (page.value === 0) {
       files.value = data.files || []
+      directories.value = data.directories || []
     } else {
       files.value.push(...(data.files || []))
     }
@@ -348,6 +408,25 @@ async function fetchFiles() {
   } finally {
     loading.value = false
   }
+}
+
+function navigateToDir(dir) {
+  currentDir.value = dir
+  page.value = 0
+  files.value = []
+  directories.value = []
+  fetchFiles()
+}
+
+function goUp() {
+  const parts = currentDir.value.split('/').filter(Boolean)
+  parts.pop()
+  navigateToDir(parts.length > 0 ? parts.join('/') + '/' : '')
+}
+
+function getDirName(dir) {
+  const parts = dir.split('/').filter(Boolean)
+  return parts[parts.length - 1] || dir
 }
 
 function loadMore() {
@@ -1256,6 +1335,58 @@ function showToast(message, type = 'success') {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 面包屑导航 */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-md) 0;
+  margin-bottom: var(--space-lg);
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.breadcrumb-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.breadcrumb-separator {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* 目录卡片 */
+.directory-card {
+  cursor: pointer;
+  border: 1px dashed var(--border);
+}
+
+.directory-card:hover {
+  border-color: var(--warning);
+  background: var(--warning-light);
+}
+
+.directory-item {
+  cursor: pointer;
+}
+
+.directory-item:hover {
+  background: var(--warning-light);
 }
 
 /* 响应式 */
