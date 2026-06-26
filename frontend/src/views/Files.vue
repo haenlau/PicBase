@@ -709,7 +709,8 @@ async function confirmRename() {
       const dir = oldName.includes('/') ? oldName.substring(0, oldName.lastIndexOf('/') + 1) : ''
       const newNameFull = dir + newName.value
       
-      await api.put('/api/manage/rename/' + encodeURIComponent(oldName), {
+      // 后端使用 POST 方法
+      await api.post('/api/manage/rename/' + encodeURIComponent(oldName), {
         newName: newNameFull
       })
       
@@ -745,9 +746,8 @@ async function confirmMove() {
         ? targetFolder.value.replace(/\/$/, '') + '/' + fileName
         : fileName
       
-      await api.put('/api/manage/move/' + encodeURIComponent(oldName), {
-        newName: newNameFull
-      })
+      // 后端移动 API 使用 dist 参数
+      await api.post('/api/manage/move/' + encodeURIComponent(oldName) + '?dist=' + encodeURIComponent(targetFolder.value))
     }
     
     showToast(`移动成功 ${targets.length} 个文件`, 'success')

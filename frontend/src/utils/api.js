@@ -24,6 +24,20 @@ const api = {
     return res.json()
   },
 
+  async put(url, data) {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: 'include'
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(text || 'HTTP ' + res.status)
+    }
+    return res.json()
+  },
+
   async del(url) {
     const res = await fetch(url, {
       method: 'DELETE',
