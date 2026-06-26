@@ -23,14 +23,15 @@
 
       <v-divider />
 
-      <!-- 导航菜单 -->
-      <v-list nav density="comfortable" class="px-2 py-2">
+      <!-- 导航菜单 - 统一间距 -->
+      <v-list nav density="comfortable" class="px-2 py-2 nav-list">
         <v-list-item
           v-if="isLoggedIn"
           to="/"
           :active="$route.path === '/'"
           rounded="lg"
           color="primary"
+          class="nav-item"
         >
           <template #prepend>
             <v-icon>mdi-cloud-upload-outline</v-icon>
@@ -40,15 +41,44 @@
 
         <v-list-item
           v-if="isLoggedIn"
-          to="/admin"
-          :active="$route.path === '/admin'"
+          to="/files"
+          :active="$route.path === '/files'"
           rounded="lg"
           color="primary"
+          class="nav-item"
         >
           <template #prepend>
-            <v-icon>mdi-view-dashboard-outline</v-icon>
+            <v-icon>mdi-folder-outline</v-icon>
           </template>
-          <v-list-item-title>管理后台</v-list-item-title>
+          <v-list-item-title>文件管理</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          v-if="isLoggedIn"
+          to="/channels"
+          :active="$route.path === '/channels'"
+          rounded="lg"
+          color="primary"
+          class="nav-item"
+        >
+          <template #prepend>
+            <v-icon>mdi-cloud-outline</v-icon>
+          </template>
+          <v-list-item-title>渠道配置</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item
+          v-if="isLoggedIn"
+          to="/settings"
+          :active="$route.path === '/settings'"
+          rounded="lg"
+          color="primary"
+          class="nav-item"
+        >
+          <template #prepend>
+            <v-icon>mdi-cog-outline</v-icon>
+          </template>
+          <v-list-item-title>安全设置</v-list-item-title>
         </v-list-item>
 
         <v-list-item
@@ -56,6 +86,7 @@
           :active="$route.path === '/help'"
           rounded="lg"
           color="primary"
+          class="nav-item"
         >
           <template #prepend>
             <v-icon>mdi-help-circle-outline</v-icon>
@@ -63,11 +94,10 @@
           <v-list-item-title>配置说明</v-list-item-title>
         </v-list-item>
 
-        <v-divider class="my-2" />
-
         <v-list-item
           @click="toggleTheme"
           rounded="lg"
+          class="nav-item"
         >
           <template #prepend>
             <v-icon>{{ isDark ? 'mdi-weather-sunny' : 'mdi-weather-night' }}</v-icon>
@@ -80,6 +110,7 @@
           @click="handleLogout"
           rounded="lg"
           color="error"
+          class="nav-item"
         >
           <template #prepend>
             <v-icon>mdi-logout</v-icon>
@@ -92,6 +123,7 @@
           to="/login"
           rounded="lg"
           color="primary"
+          class="nav-item"
         >
           <template #prepend>
             <v-icon>mdi-login</v-icon>
@@ -136,17 +168,13 @@ const drawer = ref(true)
 const rail = ref(false)
 
 onMounted(() => {
-  // 检查主题
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     isDark.value = true
     theme.global.name.value = 'darkTheme'
   }
   
-  // 检查登录状态
   checkAuth()
-  
-  // 响应式处理
   handleResize()
   window.addEventListener('resize', handleResize)
 })
@@ -181,7 +209,6 @@ async function handleLogout() {
   router.push('/login')
 }
 
-// 监听路由变化，刷新登录状态
 router.afterEach(() => {
   checkAuth()
 })
@@ -192,13 +219,20 @@ router.afterEach(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }
 
-/* 侧边栏样式优化 */
 .v-navigation-drawer {
   border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)) !important;
 }
 
-/* 导航项激活状态 */
 .v-list-item--active {
   background: rgba(var(--v-theme-primary), 0.12) !important;
+}
+
+/* 统一导航项间距 */
+.nav-list .nav-item {
+  margin-bottom: 4px;
+}
+
+.nav-list .nav-item:last-child {
+  margin-bottom: 0;
 }
 </style>

@@ -13,9 +13,21 @@ const routes = [
     component: () => import('./views/Login.vue')
   },
   {
-    path: '/admin',
-    name: 'Admin',
-    component: () => import('./views/Admin.vue'),
+    path: '/files',
+    name: 'Files',
+    component: () => import('./views/Files.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/channels',
+    name: 'Channels',
+    component: () => import('./views/Channels.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('./views/Settings.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -45,6 +57,12 @@ router.beforeEach(async (to, from, next) => {
   
   // 404页面不需要认证
   if (to.name === 'NotFound') {
+    next()
+    return
+  }
+  
+  // 帮助页面不需要认证
+  if (to.path === '/help') {
     next()
     return
   }
