@@ -215,14 +215,14 @@ function unauthorizedAdminPreviewResponse() {
 export async function return404(url) {
     const Img404 = await fetch(url.origin + "/static/media/404.png");
     if (!Img404.ok) {
-        return new Response('Error: Image Not Found',
-            {
-                status: 404,
-                headers: {
-                    "Cache-Control": "public, max-age=86400"
-                }
+        // 返回 JSON 格式的 404 错误
+        return new Response(JSON.stringify({ error: 'File not found' }), {
+            status: 404,
+            headers: {
+                "Content-Type": "application/json",
+                "Cache-Control": "public, max-age=86400"
             }
-        );
+        });
     } else {
         return new Response(Img404.body, {
             status: 404,
