@@ -12,7 +12,7 @@ const corsHeaders = {
 };
 
 export async function onRequest(context) {
-    const { request, env, params, waitUntil } = context;
+    const { request, env, params } = context;
 
     // OPTIONS 预检请求
     if (request.method === 'OPTIONS') {
@@ -101,10 +101,14 @@ export async function onRequest(context) {
         await db.put(fileId, fileData.value, { metadata: metadataToSave });
 
         // 更新索引
-        waitUntil(addFileToIndex(context, fileId, metadataToSave));
+        const indexResult = await addFileToIndex(context, fileId, metadataToSave);
+        if (!indexResult.success) {
+            throw new Error(indexResult.error || 'Update index failed');
+        }
 
         return new Response(JSON.stringify({
             success: true,
+            indexUpdated: true,
             metadata: await buildFileMetadataForManagement(db, env, metadataToSave),
         }), {
             status: 200,

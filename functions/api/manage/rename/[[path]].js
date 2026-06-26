@@ -20,7 +20,7 @@ const corsHeaders = {
 };
 
 export async function onRequest(context) {
-    const { request, env, params, waitUntil } = context;
+    const { request, env, params } = context;
 
     // OPTIONS 预检请求
     if (request.method === 'OPTIONS') {
@@ -180,11 +180,15 @@ export async function onRequest(context) {
         await purgePublicFileListCache(url.origin, normalizedFolder, normalizedDist);
 
         // 更新索引
-        waitUntil(moveFileInIndex(context, fileId, newFileId));
+        const indexResult = await moveFileInIndex(context, fileId, newFileId, metadata);
+        if (!indexResult.success) {
+            throw new Error(indexResult.error || 'Update index failed');
+        }
 
         return new Response(JSON.stringify({
             success: true,
             newFileId,
+            indexUpdated: true,
             metadata: await buildFileMetadataForManagement(db, env, metadata),
         }), {
             status: 200,

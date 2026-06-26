@@ -9,7 +9,6 @@ export async function onRequest(context) {
       request, // same as existing Worker API
       env, // same as existing Worker API
       params, // if filename includes [id] or [[path]]
-      waitUntil, // same as ctx.waitUntil in existing Worker API
     } = context;
 
     // 组装 CDN URL
@@ -31,7 +30,6 @@ export async function onRequest(context) {
     value.metadata.ListType = "White"
     const metadata = cleanPersistedMetadata(value.metadata);
     await db.put(params.path, value.value, {metadata});
-    const info = JSON.stringify({ success: true, listType: metadata.ListType });
 
     // 清除CDN缓存
     await purgeCFCache(env, cdnUrl);
@@ -42,7 +40,10 @@ export async function onRequest(context) {
     await purgePublicFileListCache(url.origin, normalizedFolder);
 
     // 更新索引
-    waitUntil(addFileToIndex(context, params.path, metadata));
+    const indexResult = await addFileToIndex(context, params.path, metadata);
+    if (!indexResult.success) {
+      throw new Error(indexResult.error || 'Update index failed');
+    }
 
-    return new Response(info);
+    return new Response(JSON.stringify({ success: true, listType: metadata.ListType, indexUpdated: true }));
 }

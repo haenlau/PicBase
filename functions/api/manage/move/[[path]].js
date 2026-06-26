@@ -112,13 +112,17 @@ export async function onRequest(context) {
             throw new Error('Move file failed');
         } else {
             // 从索引中删除旧文件，并添加新文件
-            waitUntil(moveFileInIndex(context, fileId, newFileId));
+            const indexResult = await moveFileInIndex(context, fileId, newFileId);
+            if (!indexResult.success) {
+                throw new Error(indexResult.error || 'Update index failed');
+            }
         }
 
         return new Response(JSON.stringify({
             success: true,
             fileId: fileId,
-            newFileId: newFileId
+            newFileId: newFileId,
+            indexUpdated: true
         }));
     } catch (e) {
         return new Response(JSON.stringify({

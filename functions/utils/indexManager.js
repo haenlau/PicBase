@@ -709,7 +709,7 @@ export async function readIndex(context, options = {}) {
         const directFileCount = directFiles.length;
 
         // 如果不包含子目录文件，获取当前目录下的直接文件
-        if (!includeSubdirFiles) {
+        if (!includeSubdirFiles && !search) {
             resultFiles = directFiles;
         }
 

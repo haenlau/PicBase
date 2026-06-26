@@ -109,12 +109,16 @@ export async function onRequest(context) {
             throw new Error('Delete file failed');
         } else {
             // 从索引中删除文件
-            waitUntil(removeFileFromIndex(context, fileId));
+            const indexResult = await removeFileFromIndex(context, fileId);
+            if (!indexResult.success) {
+                throw new Error(indexResult.error || 'Update index failed');
+            }
         }
 
         return new Response(JSON.stringify({
             success: true,
-            fileId: fileId
+            fileId: fileId,
+            indexUpdated: true
         }), {
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
         });

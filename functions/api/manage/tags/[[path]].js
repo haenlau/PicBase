@@ -180,11 +180,14 @@ async function handleUpdateTags(context, db, fileId, hostname) {
         const cdnUrl = `https://${hostname}/file/${fileId}`;
         waitUntil(purgeCFCache(context.env, cdnUrl));
 
-        // Update file index asynchronously
-        waitUntil(addFileToIndex(context, fileId, metadata));
+        const indexResult = await addFileToIndex(context, fileId, metadata);
+        if (!indexResult.success) {
+            throw new Error(indexResult.error || 'Update index failed');
+        }
 
         return new Response(JSON.stringify({
             success: true,
+            indexUpdated: true,
             fileId: fileId,
             action: action,
             tags: updatedTags

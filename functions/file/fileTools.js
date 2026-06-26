@@ -214,7 +214,8 @@ function unauthorizedAdminPreviewResponse() {
 
 export async function return404(url) {
     const Img404 = await fetch(url.origin + "/static/media/404.png");
-    if (!Img404.ok) {
+    const contentType = Img404.headers.get('Content-Type') || '';
+    if (!Img404.ok || !contentType.startsWith('image/')) {
         // 返回 JSON 格式的 404 错误
         return new Response(JSON.stringify({ error: 'File not found' }), {
             status: 404,
