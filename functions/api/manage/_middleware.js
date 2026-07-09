@@ -24,7 +24,11 @@ async function errorHandling(context) {
     console.error('Manage API error:', err);
     return new Response(JSON.stringify({
       success: false,
-      error: 'Internal server error',
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Internal server error',
+      },
+      message: 'Internal server error',
     }), {
       status: 500,
       headers: {

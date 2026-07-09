@@ -77,18 +77,43 @@
     <!-- 文件列表 -->
     <div v-if="files.length > 0" class="files-card">
       <div class="files-header">
-        <span class="files-title">待上传 ({{ files.length }})</span>
+        <span class="files-title">上传队列 ({{ files.length }})</span>
         <div class="files-actions">
           <button
             class="btn-primary btn-sm"
-            :disabled="uploading || !selectedChannel"
+            :disabled="uploading || !selectedChannel || pendingCount === 0"
             @click="uploadAll"
           >
             <v-icon v-if="uploading" size="16" class="spinning">mdi-loading</v-icon>
             <v-icon v-else size="16">mdi-cloud-upload</v-icon>
-            全部上传
+            上传待处理
           </button>
-          <button class="btn-ghost btn-sm" @click="clearFiles">
+          <button
+            v-if="failedCount > 0"
+            class="btn-secondary btn-sm"
+            :disabled="uploading || !selectedChannel"
+            @click="retryFailed"
+          >
+            <v-icon size="16">mdi-refresh</v-icon>
+            重试失败
+          </button>
+          <button
+            v-if="successCount > 0"
+            class="btn-secondary btn-sm"
+            @click="copySuccessfulLinks"
+          >
+            <v-icon size="16">mdi-link-variant</v-icon>
+            复制成功链接
+          </button>
+          <button
+            v-if="successCount > 0"
+            class="btn-ghost btn-sm"
+            :disabled="uploading"
+            @click="clearSuccessful"
+          >
+            清理成功项
+          </button>
+          <button class="btn-ghost btn-sm" :disabled="uploading" @click="clearFiles">
             清空
           </button>
         </div>
@@ -105,6 +130,7 @@
               <span>{{ file.sizeText }}</span>
               <span v-if="file.preparing" class="badge badge-info">处理中</span>
               <span v-if="file.compressed" class="badge badge-success">已压缩</span>
+              <span v-if="file.error" class="file-error">{{ file.error }}</span>
             </div>
           </div>
           <div class="file-status">
@@ -223,6 +249,10 @@ const copiedLabel = ref('')
 
 const toast = ref({ show: false, message: '', type: 'success', icon: 'mdi-check' })
 
+const pendingCount = computed(() => files.value.filter(file => file.status === 'pending').length)
+const failedCount = computed(() => files.value.filter(file => file.status === 'error').length)
+const successCount = computed(() => files.value.filter(file => file.status === 'success').length)
+
 const linkFormats = computed(() => {
   const url = linkFile.value.url
   const name = linkFile.value.name
@@ -331,6 +361,7 @@ function addFiles(fileList) {
       status: 'pending',
       progress: 0,
       url: null,
+      error: null,
       compressed: false,
       preparing: false,
       preparePromise: null
@@ -376,11 +407,20 @@ function clearFiles() {
   files.value = []
 }
 
+function clearSuccessful() {
+  files.value = files.value.filter(file => file.status !== 'success')
+}
+
 async function uploadAll() {
   if (uploading.value || !selectedChannel.value) return
   
-  uploading.value = true
   const pendingFiles = files.value.filter(f => f.status === 'pending')
+  if (pendingFiles.length === 0) {
+    showToast('没有待上传文件', 'warning')
+    return
+  }
+
+  uploading.value = true
   const concurrency = Math.min(3, pendingFiles.length)
   let cursor = 0
 
@@ -411,6 +451,7 @@ async function uploadFile(fileObj) {
 
     fileObj.status = 'uploading'
     fileObj.progress = 0
+    fileObj.error = null
 
     const params = {
       uploadChannel: selectedChannel.value.type
@@ -440,6 +481,7 @@ async function uploadFile(fileObj) {
     }
   } catch (err) {
     fileObj.status = 'error'
+    fileObj.error = err.message || '上传失败'
     showToast(`上传失败: ${err.message}`, 'error')
   } finally {
     if (progressInterval) {
@@ -451,7 +493,20 @@ async function uploadFile(fileObj) {
 async function retryUpload(fileObj) {
   fileObj.status = 'pending'
   fileObj.progress = 0
+  fileObj.error = null
   await uploadFile(fileObj)
+}
+
+async function retryFailed() {
+  files.value
+    .filter(file => file.status === 'error')
+    .forEach(file => {
+      file.status = 'pending'
+      file.progress = 0
+      file.error = null
+    })
+
+  await uploadAll()
 }
 
 function showLink(fileObj) {
@@ -461,6 +516,23 @@ function showLink(fileObj) {
   }
   copiedLabel.value = ''
   showLinkDialog.value = true
+}
+
+async function copySuccessfulLinks() {
+  const links = files.value
+    .filter(file => file.status === 'success' && file.url)
+    .map(file => window.location.origin + file.url)
+    .join('\n')
+
+  if (!links) {
+    showToast('没有可复制的链接', 'warning')
+    return
+  }
+
+  const success = await copyToClipboard(links)
+  if (success) {
+    showToast(`已复制 ${successCount.value} 个链接`, 'success')
+  }
 }
 
 async function copyLink(item) {
@@ -770,6 +842,8 @@ function showToast(message, type = 'success') {
 .files-actions {
   display: flex;
   gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .files-list {
@@ -818,9 +892,18 @@ function showToast(message, type = 'success') {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
   font-size: 12px;
   color: var(--text-tertiary);
   margin-top: 2px;
+}
+
+.file-error {
+  color: var(--error);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
 }
 
 .badge {
@@ -1048,6 +1131,16 @@ function showToast(message, type = 'success') {
   
   .upload-zone {
     padding: var(--space-xl);
+  }
+
+  .files-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .files-actions {
+    justify-content: flex-start;
   }
 }
 </style>

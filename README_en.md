@@ -41,7 +41,7 @@ English | [中文](./README_zh.md)
 ### Prerequisites
 
 - Cloudflare account (with Pages, KV, R2 enabled)
-- Node.js 18+
+- Node.js 22.16+ (pinned with `.node-version` to match the Cloudflare Pages v3 default)
 
 ### Deployment
 

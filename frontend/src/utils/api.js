@@ -1,56 +1,74 @@
-const api = {
-  async get(url) {
-    const res = await fetch(url, {
-      credentials: 'include'
-    })
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text || 'HTTP ' + res.status)
+async function parseBody(res) {
+  const text = await res.text()
+  if (!text) return null
+
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(text)
+    } catch {
+      return text
     }
-    return res.json()
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text
+  }
+}
+
+function getErrorMessage(body, fallback) {
+  if (!body) return fallback
+  if (typeof body === 'string') return body
+  if (typeof body.error === 'string') return body.error
+  if (body.error?.message) return body.error.message
+  if (body.message) return body.message
+  return fallback
+}
+
+async function request(url, options = {}) {
+  const res = await fetch(url, {
+    credentials: 'include',
+    ...options
+  })
+  const body = await parseBody(res)
+
+  if (!res.ok) {
+    throw new Error(getErrorMessage(body, 'HTTP ' + res.status))
+  }
+
+  return body
+}
+
+const api = {
+  get(url) {
+    return request(url)
   },
 
-  async post(url, data) {
-    const res = await fetch(url, {
+  post(url, data) {
+    return request(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      credentials: 'include'
+      body: JSON.stringify(data)
     })
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text || 'HTTP ' + res.status)
-    }
-    return res.json()
   },
 
-  async put(url, data) {
-    const res = await fetch(url, {
+  put(url, data) {
+    return request(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      credentials: 'include'
+      body: JSON.stringify(data)
     })
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text || 'HTTP ' + res.status)
-    }
-    return res.json()
   },
 
-  async del(url) {
-    const res = await fetch(url, {
-      method: 'DELETE',
-      credentials: 'include'
+  del(url) {
+    return request(url, {
+      method: 'DELETE'
     })
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text || 'HTTP ' + res.status)
-    }
-    return res.json()
   },
 
-  async upload(file, params) {
+  upload(file, params) {
     const formData = new FormData()
     formData.append('file', file)
 
@@ -60,18 +78,10 @@ const api = {
       url = '/upload?' + query
     }
 
-    const res = await fetch(url, {
+    return request(url, {
       method: 'POST',
-      body: formData,
-      credentials: 'include'
+      body: formData
     })
-
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text || 'Upload failed: ' + res.status)
-    }
-
-    return res.json()
   }
 }
 

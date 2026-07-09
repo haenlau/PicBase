@@ -41,7 +41,7 @@ PicBase 是一个基于 Cloudflare 边缘基础设施构建的现代自托管文
 ### 前提条件
 
 - 拥有 Cloudflare 账户，并启用 Pages、KV 和 R2
-- Node.js 18+（用于本地开发）
+- Node.js 22.16+（用于本地开发，仓库通过 `.node-version` 对齐 Cloudflare Pages v3 默认版本）
 
 ### 部署
 

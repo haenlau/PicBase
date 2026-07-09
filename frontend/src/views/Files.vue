@@ -29,6 +29,19 @@
           <option value="">全部渠道</option>
           <option v-for="ch in channelOptions" :key="ch" :value="ch">{{ ch }}</option>
         </select>
+        <select v-model="filterType" class="toolbar-select toolbar-select-sm">
+          <option v-for="item in fileTypeOptions" :key="item.value" :value="item.value">
+            {{ item.label }}
+          </option>
+        </select>
+        <select v-model="sortBy" class="toolbar-select toolbar-select-md">
+          <option value="time-desc">最新优先</option>
+          <option value="time-asc">最早优先</option>
+          <option value="name-asc">名称 A-Z</option>
+          <option value="name-desc">名称 Z-A</option>
+          <option value="size-desc">体积从大到小</option>
+          <option value="size-asc">体积从小到大</option>
+        </select>
         <div class="view-toggle">
           <button
             class="toggle-btn"
@@ -101,7 +114,7 @@
       
       <!-- 目录 -->
       <div
-        v-for="dir in directories"
+        v-for="dir in visibleDirectories"
         :key="dir"
         class="file-card directory-card"
         @click="navigateToDir(dir)"
@@ -131,7 +144,7 @@
       
       <!-- 文件 -->
       <div
-        v-for="file in files"
+        v-for="file in visibleFiles"
         :key="file.name"
         class="file-card"
         :class="{ 'file-card--selected': isSelected(file) }"
@@ -216,7 +229,7 @@
       
       <!-- 目录 -->
       <div
-        v-for="dir in directories"
+        v-for="dir in visibleDirectories"
         :key="dir"
         class="list-item directory-item"
         @click="navigateToDir(dir)"
@@ -230,10 +243,10 @@
         <div class="list-col list-col-channel">文件夹</div>
         <div class="list-col list-col-time">-</div>
         <div class="list-col list-col-actions" @click.stop>
-          <button class="btn-icon btn-icon-sm" @click="renameFolder(dir)">
+          <button class="btn-icon btn-icon-sm" title="重命名" @click="renameFolder(dir)">
             <v-icon size="14">mdi-pencil</v-icon>
           </button>
-          <button class="btn-icon btn-icon-sm btn-icon-danger" @click="confirmDeleteFolder(dir)">
+          <button class="btn-icon btn-icon-sm btn-icon-danger" title="删除" @click="confirmDeleteFolder(dir)">
             <v-icon size="14">mdi-delete</v-icon>
           </button>
         </div>
@@ -241,7 +254,7 @@
       
       <!-- 文件 -->
       <div
-        v-for="file in files"
+        v-for="file in visibleFiles"
         :key="file.name"
         class="list-item"
         :class="{ 'list-item--selected': isSelected(file) }"
@@ -267,16 +280,16 @@
         </div>
         <div class="list-col list-col-time">{{ formatTime(file.metadata?.TimeStamp) }}</div>
         <div class="list-col list-col-actions" @click.stop>
-          <button class="btn-icon btn-icon-sm" @click="showLink(file)">
+          <button class="btn-icon btn-icon-sm" title="复制链接" @click="showLink(file)">
             <v-icon size="14">mdi-link</v-icon>
           </button>
-          <button class="btn-icon btn-icon-sm" @click="renameFile(file)">
+          <button class="btn-icon btn-icon-sm" title="重命名" @click="renameFile(file)">
             <v-icon size="14">mdi-pencil</v-icon>
           </button>
-          <button class="btn-icon btn-icon-sm" @click="moveFile(file)">
+          <button class="btn-icon btn-icon-sm" title="移动" @click="moveFile(file)">
             <v-icon size="14">mdi-folder-move</v-icon>
           </button>
-          <button class="btn-icon btn-icon-sm btn-icon-danger" @click="confirmDelete(file)">
+          <button class="btn-icon btn-icon-sm btn-icon-danger" title="删除" @click="confirmDelete(file)">
             <v-icon size="14">mdi-delete</v-icon>
           </button>
         </div>
@@ -284,7 +297,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="files.length === 0 && directories.length === 0 && !loading" class="empty-state">
+    <div v-if="visibleFiles.length === 0 && visibleDirectories.length === 0 && !loading" class="empty-state">
       <div class="empty-icon">
         <v-icon size="48">{{ searchQuery ? 'mdi-magnify' : 'mdi-folder-open' }}</v-icon>
       </div>
@@ -461,7 +474,10 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { formatTime, formatFileSize, getFileType, getFileIcon, getFileColor, copyToClipboard, debounce } from '@/utils/helpers'
 import api from '@/utils/api'
 
-const viewMode = ref('grid')
+const FILES_PREFERENCES_KEY = 'picbase:files:preferences'
+const savedPreferences = loadPreferences()
+
+const viewMode = ref(savedPreferences.viewMode || 'grid')
 const loading = ref(false)
 const files = ref([])
 const directories = ref([])
@@ -471,6 +487,8 @@ const currentDir = ref('')
 const selectedFiles = ref([])
 const searchQuery = ref('')
 const filterChannel = ref('')
+const filterType = ref(savedPreferences.filterType || '')
+const sortBy = ref(savedPreferences.sortBy || 'time-desc')
 const page = ref(0)
 const pageSize = ref(50)
 const hasMore = ref(true)
@@ -503,16 +521,36 @@ const deleteTarget = ref(null)
 
 const toast = ref({ show: false, message: '', type: 'success', icon: 'mdi-check' })
 
+const fileTypeOptions = [
+  { value: '', label: '全部类型' },
+  { value: 'image', label: '图片' },
+  { value: 'video', label: '视频' },
+  { value: 'audio', label: '音频' },
+  { value: 'document', label: '文档' },
+  { value: 'archive', label: '压缩包' },
+  { value: 'other', label: '其他' }
+]
+
 const channelOptions = computed(() => {
   const channels = new Set()
   files.value.forEach(f => {
     if (f.metadata?.Channel) channels.add(f.metadata.Channel)
   })
-  return Array.from(channels)
+  return Array.from(channels).sort((a, b) => a.localeCompare(b, 'zh-CN'))
 })
 
 const allSelected = computed(() => {
-  return files.value.length > 0 && selectedFiles.value.length === files.value.length
+  const visibleNames = new Set(visibleFiles.value.map(file => file.name))
+  return visibleFiles.value.length > 0 && visibleFiles.value.every(file => isSelected(file)) && selectedFiles.value.some(file => visibleNames.has(file.name))
+})
+
+const visibleFiles = computed(() => {
+  const filtered = files.value.filter(file => !filterType.value || getFileTypeForFile(file) === filterType.value)
+  return [...filtered].sort(compareFiles)
+})
+
+const visibleDirectories = computed(() => {
+  return [...directories.value].sort((a, b) => getDirName(a).localeCompare(getDirName(b), 'zh-CN'))
 })
 
 const linkFormats = computed(() => {
@@ -533,10 +571,16 @@ onMounted(() => {
   fetchFiles()
 })
 
+watch([viewMode, filterType, sortBy], savePreferences)
+
 watch(filterChannel, () => {
   page.value = 0
   files.value = []
   fetchFiles()
+})
+
+watch(filterType, () => {
+  selectedFiles.value = []
 })
 
 function clearSearch() {
@@ -551,6 +595,26 @@ const debouncedSearch = debounce(() => {
   files.value = []
   fetchFiles()
 }, 300)
+
+function loadPreferences() {
+  if (typeof localStorage === 'undefined') return {}
+
+  try {
+    return JSON.parse(localStorage.getItem(FILES_PREFERENCES_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function savePreferences() {
+  if (typeof localStorage === 'undefined') return
+
+  localStorage.setItem(FILES_PREFERENCES_KEY, JSON.stringify({
+    viewMode: viewMode.value,
+    filterType: filterType.value,
+    sortBy: sortBy.value
+  }))
+}
 
 async function fetchFiles({ silent = false } = {}) {
   if (!silent) loading.value = true
@@ -604,8 +668,16 @@ async function fetchFiles({ silent = false } = {}) {
 
 async function fetchAllDirectories() {
   try {
-    const data = await api.get('/api/manage/list?count=-1&dir=')
-    allDirectories.value = mergeDirectoryLists(data.directories || [], Array.from(optimisticDirectories.value))
+    const [data, folderData] = await Promise.all([
+      api.get('/api/manage/list?count=-1&dir=&recursive=true'),
+      api.get('/api/manage/folders?parent=&recursive=true')
+    ])
+    const virtualFolders = (folderData.folders || []).map(folder => folder.path)
+    allDirectories.value = mergeDirectoryLists(
+      data.directories || [],
+      virtualFolders,
+      Array.from(optimisticDirectories.value)
+    )
   } catch (err) {
     console.error('Failed to fetch directories:', err)
   }
@@ -680,6 +752,14 @@ function loadMore() {
   fetchFiles()
 }
 
+function getFileTypeForFile(file) {
+  return getFileType(file.metadata?.FileType, file.name)
+}
+
+function getFileTimestamp(file) {
+  return Number(file.metadata?.TimeStamp) || 0
+}
+
 function getFileSize(file) {
   const sizeStr = file.metadata?.FileSize
   if (!sizeStr) return 0
@@ -687,8 +767,32 @@ function getFileSize(file) {
   return num < 1000 ? num * 1024 * 1024 : num
 }
 
+function compareFiles(a, b) {
+  if (sortBy.value === 'name-asc') {
+    return getFileName(a).localeCompare(getFileName(b), 'zh-CN')
+  }
+
+  if (sortBy.value === 'name-desc') {
+    return getFileName(b).localeCompare(getFileName(a), 'zh-CN')
+  }
+
+  if (sortBy.value === 'size-asc') {
+    return getFileSize(a) - getFileSize(b)
+  }
+
+  if (sortBy.value === 'size-desc') {
+    return getFileSize(b) - getFileSize(a)
+  }
+
+  if (sortBy.value === 'time-asc') {
+    return getFileTimestamp(a) - getFileTimestamp(b)
+  }
+
+  return getFileTimestamp(b) - getFileTimestamp(a)
+}
+
 function isImage(file) {
-  return getFileType(file.metadata?.FileType, file.name) === 'image'
+  return getFileTypeForFile(file) === 'image'
 }
 
 function getFileUrl(file) {
@@ -702,12 +806,12 @@ function getFileName(file) {
 }
 
 function getFileTypeIcon(file) {
-  const type = getFileType(file.metadata?.FileType, file.name)
+  const type = getFileTypeForFile(file)
   return getFileIcon(type)
 }
 
 function getFileTypeColor(file) {
-  const type = getFileType(file.metadata?.FileType, file.name)
+  const type = getFileTypeForFile(file)
   return getFileColor(type)
 }
 
@@ -726,9 +830,14 @@ function toggleSelect(file) {
 
 function toggleSelectAll() {
   if (allSelected.value) {
-    selectedFiles.value = []
+    const visibleNames = new Set(visibleFiles.value.map(file => file.name))
+    selectedFiles.value = selectedFiles.value.filter(file => !visibleNames.has(file.name))
   } else {
-    selectedFiles.value = [...files.value]
+    const selectedNames = new Set(selectedFiles.value.map(file => file.name))
+    selectedFiles.value = [
+      ...selectedFiles.value,
+      ...visibleFiles.value.filter(file => !selectedNames.has(file.name))
+    ]
   }
 }
 
@@ -1066,6 +1175,8 @@ function showToast(message, type = 'success') {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .search-box {
@@ -1112,6 +1223,15 @@ function showToast(message, type = 'success') {
   font-size: 14px;
   outline: none;
   cursor: pointer;
+  max-width: 160px;
+}
+
+.toolbar-select-sm {
+  max-width: 120px;
+}
+
+.toolbar-select-md {
+  max-width: 150px;
 }
 
 .view-toggle {
@@ -1345,8 +1465,8 @@ function showToast(message, type = 'success') {
 /* 网格视图 */
 .file-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-md);
 }
 
 .file-card {
@@ -1590,7 +1710,7 @@ function showToast(message, type = 'success') {
 }
 
 .list-col-actions {
-  width: 120px;
+  width: 128px;
   flex-shrink: 0;
   display: flex;
   gap: var(--space-xs);
@@ -1948,7 +2068,15 @@ function showToast(message, type = 'success') {
   }
   
   .toolbar-right {
-    justify-content: space-between;
+    justify-content: flex-start;
+  }
+
+  .toolbar-select,
+  .toolbar-select-sm,
+  .toolbar-select-md {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
   }
   
   .file-grid {

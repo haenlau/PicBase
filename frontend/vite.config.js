@@ -18,9 +18,16 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-vue': ['vue', 'vue-router'],
-          'vendor-vuetify': ['vuetify']
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          if (/[\\/]node_modules[\\/](vue|vue-router|@vue)[\\/]/.test(id)) {
+            return 'vendor-vue'
+          }
+
+          if (/[\\/]node_modules[\\/]vuetify[\\/]/.test(id)) {
+            return 'vendor-vuetify'
+          }
         }
       }
     }
