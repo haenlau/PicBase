@@ -34,7 +34,7 @@
       ref="fileInput"
       type="file"
       multiple
-      accept="image/*"
+      accept="image/*,.apng,.avif,.bmp,.cur,.gif,.heic,.heif,.ico,.jfif,.jpeg,.jpg,.pjp,.pjpeg,.png,.svg,.tif,.tiff,.webp"
       class="d-none"
       @change="handleFileSelect"
     />
@@ -103,6 +103,7 @@
             <div class="file-name">{{ file.name }}</div>
             <div class="file-meta">
               <span>{{ file.sizeText }}</span>
+              <span v-if="file.preparing" class="badge badge-info">处理中</span>
               <span v-if="file.compressed" class="badge badge-success">已压缩</span>
             </div>
           </div>
@@ -307,9 +308,17 @@ function handlePaste(e) {
   }
 }
 
-async function addFiles(fileList) {
-  for (const file of fileList) {
+function addFiles(fileList) {
+  const selectedFiles = Array.from(fileList || [])
+  let addedCount = 0
+
+  for (const file of selectedFiles) {
     const fileType = getFileType(file.type, file.name)
+    if (fileType !== 'image') {
+      showToast(`不支持的图片格式: ${file.name}`, 'warning')
+      continue
+    }
+
     const fileObj = {
       id: generateId(),
       file,
@@ -322,24 +331,40 @@ async function addFiles(fileList) {
       status: 'pending',
       progress: 0,
       url: null,
-      compressed: false
+      compressed: false,
+      preparing: false,
+      preparePromise: null
     }
-    
+
+    files.value.push(fileObj)
+    addedCount++
+    fileObj.preparePromise = prepareFile(fileObj)
+  }
+
+  if (addedCount > 1) {
+    showToast(`已加入 ${addedCount} 张图片`, 'success')
+  }
+}
+
+async function prepareFile(fileObj) {
+  const file = fileObj.file
+  const fileType = fileObj.type
+
+  try {
     if (fileType === 'image' && file.type !== 'image/svg+xml' && file.type !== 'image/gif') {
-      try {
-        const compressed = await compressImage(file, 0.8)
-        if (compressed.size < file.size) {
-          fileObj.file = compressed
-          fileObj.size = compressed.size
-          fileObj.sizeText = formatFileSize(compressed.size)
-          fileObj.compressed = true
-        }
-      } catch (e) {
-        console.warn('Compression failed:', e)
+      fileObj.preparing = true
+      const compressed = await compressImage(file, 0.8)
+      if (compressed.size < file.size && fileObj.status === 'pending') {
+        fileObj.file = compressed
+        fileObj.size = compressed.size
+        fileObj.sizeText = formatFileSize(compressed.size)
+        fileObj.compressed = true
       }
     }
-    
-    files.value.push(fileObj)
+  } catch (e) {
+    console.warn('Compression failed:', e)
+  } finally {
+    fileObj.preparing = false
   }
 }
 
@@ -356,10 +381,17 @@ async function uploadAll() {
   
   uploading.value = true
   const pendingFiles = files.value.filter(f => f.status === 'pending')
-  
-  for (const file of pendingFiles) {
-    await uploadFile(file)
+  const concurrency = Math.min(3, pendingFiles.length)
+  let cursor = 0
+
+  async function uploadNext() {
+    while (cursor < pendingFiles.length) {
+      const file = pendingFiles[cursor++]
+      await uploadFile(file)
+    }
   }
+
+  await Promise.all(Array.from({ length: concurrency }, uploadNext))
   
   uploading.value = false
   
@@ -370,10 +402,16 @@ async function uploadAll() {
 }
 
 async function uploadFile(fileObj) {
-  fileObj.status = 'uploading'
-  fileObj.progress = 0
-  
+  let progressInterval = null
+
   try {
+    if (fileObj.preparePromise) {
+      await fileObj.preparePromise
+    }
+
+    fileObj.status = 'uploading'
+    fileObj.progress = 0
+
     const params = {
       uploadChannel: selectedChannel.value.type
     }
@@ -384,7 +422,7 @@ async function uploadFile(fileObj) {
       params.uploadFolder = uploadFolder.value
     }
     
-    const progressInterval = setInterval(() => {
+    progressInterval = setInterval(() => {
       if (fileObj.progress < 90) {
         fileObj.progress += Math.random() * 15
       }
@@ -392,7 +430,6 @@ async function uploadFile(fileObj) {
     
     const result = await api.upload(fileObj.file, params)
     
-    clearInterval(progressInterval)
     fileObj.progress = 100
     
     if (result && result[0]?.src) {
@@ -404,6 +441,10 @@ async function uploadFile(fileObj) {
   } catch (err) {
     fileObj.status = 'error'
     showToast(`上传失败: ${err.message}`, 'error')
+  } finally {
+    if (progressInterval) {
+      clearInterval(progressInterval)
+    }
   }
 }
 
@@ -794,6 +835,11 @@ function showToast(message, type = 'success') {
 .badge-success {
   background: var(--success-light);
   color: var(--success);
+}
+
+.badge-info {
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
 .file-status {

@@ -192,7 +192,7 @@ export async function onRequest(context) {
         });
 
         // 文件类型过滤辅助函数
-        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif'];
+        const imageExts = ['jpg', 'jpeg', 'jfif', 'pjp', 'pjpeg', 'png', 'apng', 'gif', 'webp', 'bmp', 'dib', 'svg', 'avif', 'heic', 'heif', 'tif', 'tiff', 'ico', 'cur'];
         const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv', 'avi', '3gp', 'mpeg', 'mpg', 'flv', 'wmv', 'ts', 'rmvb'];
         const audioExts = ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'ape', 'opus'];
 

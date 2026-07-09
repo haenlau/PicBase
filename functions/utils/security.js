@@ -14,6 +14,8 @@ export const ALLOWED_MIME_TYPES = {
   'image/heic': ['.heic'],
   'image/heif': ['.heif'],
   'image/avif': ['.avif'],
+  'image/x-icon': ['.ico'],
+  'image/vnd.microsoft.icon': ['.ico'],
   'image/svg+xml': ['.svg'],
 }
 
@@ -27,6 +29,7 @@ export const ALLOWED_EXTENSIONS = [
   '.bmp',
   '.heic', '.heif',
   '.avif',
+  '.ico',
   '.svg',
 ]
 
@@ -46,7 +49,7 @@ export function validateFileType(file) {
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     return {
       allowed: false,
-      reason: `不支持的文件格式: ${ext}。仅支持图片格式 (JPEG, PNG, WebP, GIF, TIFF, BMP, HEIC, AVIF, SVG)`
+      reason: `不支持的文件格式: ${ext}。仅支持图片格式 (JPEG, PNG, WebP, GIF, TIFF, BMP, HEIC, AVIF, ICO, SVG)`
     }
   }
   
@@ -123,6 +126,7 @@ export function getSafeContentType(fileName, originalMimeType) {
     '.heic': 'image/heic',
     '.heif': 'image/heif',
     '.avif': 'image/avif',
+    '.ico': 'image/x-icon',
     '.svg': 'image/svg+xml',
   }
   

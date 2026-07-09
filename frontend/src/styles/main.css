@@ -15,9 +15,12 @@
   --border: #E4E4E7;
   --border-hover: #D4D4D8;
   
-  --accent: #2563EB;
-  --accent-hover: #1D4ED8;
-  --accent-light: #EFF6FF;
+  --air1-blue: #0F7CFF;
+  --air1-cyan: #00A6FF;
+  --cloudflare-orange: #F38020;
+  --accent: #0F7CFF;
+  --accent-hover: #075DCC;
+  --accent-light: #EAF4FF;
   
   --success: #16A34A;
   --success-light: #F0FDF4;
@@ -65,9 +68,12 @@
   --border: #27272A;
   --border-hover: #3F3F46;
   
-  --accent: #3B82F6;
-  --accent-hover: #60A5FA;
-  --accent-light: #1E3A5F;
+  --air1-blue: #5AA9FF;
+  --air1-cyan: #37D4FF;
+  --cloudflare-orange: #FF9B45;
+  --accent: #5AA9FF;
+  --accent-hover: #87C3FF;
+  --accent-light: #123B5F;
   
   --success: #22C55E;
   --success-light: #14532D;

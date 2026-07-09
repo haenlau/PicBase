@@ -14,7 +14,10 @@
         <div class="logo-icon">
           <v-icon size="20">mdi-cloud-upload</v-icon>
         </div>
-        <span v-if="!rail" class="logo-text">PicBase</span>
+        <div v-if="!rail" class="logo-copy">
+          <span class="logo-text">PicBase</span>
+          <span class="logo-kicker">Air1 Quick Tools</span>
+        </div>
       </div>
 
       <!-- 导航菜单 -->
@@ -62,6 +65,9 @@
           <component :is="Component" />
         </transition>
       </router-view>
+      <footer class="app-footer">
+        Part of Air1 Quick Tools · Powered by Cloudflare
+      </footer>
     </v-main>
   </v-app>
 </template>
@@ -158,16 +164,29 @@ router.afterEach(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--air1-blue), var(--air1-cyan));
   color: white;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
+}
+
+.logo-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .logo-text {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.logo-kicker {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
 }
 
 .sidebar-nav {
@@ -207,6 +226,15 @@ router.afterEach(() => {
 .sidebar-footer {
   padding: 8px;
   border-top: 1px solid var(--border);
+}
+
+.app-footer {
+  padding: 12px var(--space-2xl) 20px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-primary) 92%, var(--air1-blue));
 }
 
 /* 过渡动画 */

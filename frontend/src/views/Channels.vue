@@ -265,10 +265,10 @@ const deleteType = ref('')
 const toast = ref({ show: false, message: '', type: 'success', icon: 'mdi-check' })
 
 const channelTypes = [
-  { id: 'telegram', name: 'Telegram', icon: 'mdi-telegram', color: '#0088cc', description: '上传到 Telegram 频道' },
+  { id: 'telegram', name: 'Telegram', icon: 'mdi-send-variant', color: '#0088cc', description: '上传到 Telegram 频道' },
   { id: 'cfr2', name: 'Cloudflare R2', icon: 'mdi-cloud', color: '#F38020', description: 'Cloudflare R2 存储' },
   { id: 's3', name: 'S3 兼容', icon: 'mdi-aws', color: '#FF9900', description: 'AWS S3 或兼容服务' },
-  { id: 'discord', name: 'Discord', icon: 'mdi-discord', color: '#5865F2', description: '上传到 Discord 频道' },
+  { id: 'discord', name: 'Discord', icon: 'mdi-forum', color: '#5865F2', description: '上传到 Discord 频道' },
   { id: 'huggingface', name: 'HuggingFace', icon: 'mdi-face-man', color: '#FFD21E', description: 'HuggingFace 仓库' },
   { id: 'webdav', name: 'WebDAV', icon: 'mdi-folder-network', color: '#4CAF50', description: 'WebDAV 服务' }
 ]

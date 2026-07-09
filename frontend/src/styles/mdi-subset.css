@@ -1,0 +1,427 @@
+/* Material Design Icons subset used by PicBase. */
+@font-face {
+  font-family: "Material Design Icons";
+  src: url("@mdi/font/fonts/materialdesignicons-webfont.woff2?v=7.4.47") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+.mdi:before,
+.mdi-set {
+  display: inline-block;
+  font: normal normal normal 24px/1 "Material Design Icons";
+  font-size: inherit;
+  text-rendering: auto;
+  line-height: inherit;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.mdi-account-key::before {
+  content: "\F000B";
+}
+
+.mdi-alert::before {
+  content: "\F0026";
+}
+
+.mdi-alert-circle::before {
+  content: "\F0028";
+}
+
+.mdi-alert-circle-outline::before {
+  content: "\F05D6";
+}
+
+.mdi-apple-keyboard-command::before {
+  content: "\F0633";
+}
+
+.mdi-apple-keyboard-control::before {
+  content: "\F0634";
+}
+
+.mdi-apple-keyboard-option::before {
+  content: "\F0635";
+}
+
+.mdi-apple-keyboard-shift::before {
+  content: "\F0636";
+}
+
+.mdi-arrow-down::before {
+  content: "\F0045";
+}
+
+.mdi-arrow-left::before {
+  content: "\F004D";
+}
+
+.mdi-arrow-right::before {
+  content: "\F0054";
+}
+
+.mdi-arrow-up::before {
+  content: "\F005D";
+}
+
+.mdi-aws::before {
+  content: "\F0E0F";
+}
+
+.mdi-backspace::before {
+  content: "\F006E";
+}
+
+.mdi-cached::before {
+  content: "\F00E8";
+}
+
+.mdi-calendar::before {
+  content: "\F00ED";
+}
+
+.mdi-check::before {
+  content: "\F012C";
+}
+
+.mdi-check-circle::before {
+  content: "\F05E0";
+}
+
+.mdi-check-circle-outline::before {
+  content: "\F05E1";
+}
+
+.mdi-checkbox-blank-outline::before {
+  content: "\F0131";
+}
+
+.mdi-checkbox-marked::before {
+  content: "\F0132";
+}
+
+.mdi-chevron-down::before {
+  content: "\F0140";
+}
+
+.mdi-chevron-left::before {
+  content: "\F0141";
+}
+
+.mdi-chevron-right::before {
+  content: "\F0142";
+}
+
+.mdi-chevron-up::before {
+  content: "\F0143";
+}
+
+.mdi-circle::before {
+  content: "\F0765";
+}
+
+.mdi-clipboard-check::before {
+  content: "\F014E";
+}
+
+.mdi-close::before {
+  content: "\F0156";
+}
+
+.mdi-close-circle::before {
+  content: "\F0159";
+}
+
+.mdi-cloud::before {
+  content: "\F015F";
+}
+
+.mdi-cloud-off-outline::before {
+  content: "\F0164";
+}
+
+.mdi-cloud-outline::before {
+  content: "\F0163";
+}
+
+.mdi-cloud-upload::before {
+  content: "\F0167";
+}
+
+.mdi-cloud-upload-outline::before {
+  content: "\F0B7E";
+}
+
+.mdi-cog::before {
+  content: "\F0493";
+}
+
+.mdi-cog-outline::before {
+  content: "\F08BB";
+}
+
+.mdi-content-save::before {
+  content: "\F0193";
+}
+
+.mdi-cookie::before {
+  content: "\F0198";
+}
+
+.mdi-database::before {
+  content: "\F01BC";
+}
+
+.mdi-delete::before {
+  content: "\F01B4";
+}
+
+.mdi-eye::before {
+  content: "\F0208";
+}
+
+.mdi-eye-off::before {
+  content: "\F0209";
+}
+
+.mdi-eyedropper::before {
+  content: "\F020A";
+}
+
+.mdi-face-man::before {
+  content: "\F0643";
+}
+
+.mdi-file::before {
+  content: "\F0214";
+}
+
+.mdi-file-document::before {
+  content: "\F0219";
+}
+
+.mdi-file-image::before {
+  content: "\F021F";
+}
+
+.mdi-file-music::before {
+  content: "\F0223";
+}
+
+.mdi-file-video::before {
+  content: "\F022B";
+}
+
+.mdi-folder::before {
+  content: "\F024B";
+}
+
+.mdi-folder-move::before {
+  content: "\F0252";
+}
+
+.mdi-folder-network::before {
+  content: "\F0870";
+}
+
+.mdi-folder-open::before {
+  content: "\F0770";
+}
+
+.mdi-folder-outline::before {
+  content: "\F0256";
+}
+
+.mdi-folder-plus::before {
+  content: "\F0257";
+}
+
+.mdi-folder-zip::before {
+  content: "\F06EB";
+}
+
+.mdi-forum::before {
+  content: "\F028C";
+}
+
+.mdi-frequently-asked-questions::before {
+  content: "\F0EB4";
+}
+
+.mdi-fullscreen::before {
+  content: "\F0293";
+}
+
+.mdi-fullscreen-exit::before {
+  content: "\F0294";
+}
+
+.mdi-help-circle-outline::before {
+  content: "\F0625";
+}
+
+.mdi-home::before {
+  content: "\F02DC";
+}
+
+.mdi-information::before {
+  content: "\F02FC";
+}
+
+.mdi-key-variant::before {
+  content: "\F030B";
+}
+
+.mdi-keyboard-return::before {
+  content: "\F0311";
+}
+
+.mdi-keyboard-space::before {
+  content: "\F1050";
+}
+
+.mdi-link::before {
+  content: "\F0337";
+}
+
+.mdi-loading::before {
+  content: "\F0772";
+}
+
+.mdi-login::before {
+  content: "\F0342";
+}
+
+.mdi-logout::before {
+  content: "\F0343";
+}
+
+.mdi-magnify::before {
+  content: "\F0349";
+}
+
+.mdi-menu::before {
+  content: "\F035C";
+}
+
+.mdi-menu-down::before {
+  content: "\F035D";
+}
+
+.mdi-menu-right::before {
+  content: "\F035F";
+}
+
+.mdi-minus::before {
+  content: "\F0374";
+}
+
+.mdi-minus-box::before {
+  content: "\F0375";
+}
+
+.mdi-page-first::before {
+  content: "\F0600";
+}
+
+.mdi-page-last::before {
+  content: "\F0601";
+}
+
+.mdi-palette::before {
+  content: "\F03D8";
+}
+
+.mdi-paperclip::before {
+  content: "\F03E2";
+}
+
+.mdi-pause::before {
+  content: "\F03E4";
+}
+
+.mdi-pencil::before {
+  content: "\F03EB";
+}
+
+.mdi-play::before {
+  content: "\F040A";
+}
+
+.mdi-plus::before {
+  content: "\F0415";
+}
+
+.mdi-radiobox-blank::before {
+  content: "\F043D";
+}
+
+.mdi-radiobox-marked::before {
+  content: "\F043E";
+}
+
+.mdi-refresh::before {
+  content: "\F0450";
+}
+
+.mdi-send-variant::before {
+  content: "\F1C4D";
+}
+
+.mdi-shield-account::before {
+  content: "\F088F";
+}
+
+.mdi-shield-alert::before {
+  content: "\F0ECC";
+}
+
+.mdi-star::before {
+  content: "\F04CE";
+}
+
+.mdi-star-half-full::before {
+  content: "\F04D0";
+}
+
+.mdi-star-outline::before {
+  content: "\F04D2";
+}
+
+.mdi-unfold-more-horizontal::before {
+  content: "\F054F";
+}
+
+.mdi-view-grid::before {
+  content: "\F0570";
+}
+
+.mdi-view-list::before {
+  content: "\F0572";
+}
+
+.mdi-volume-high::before {
+  content: "\F057E";
+}
+
+.mdi-volume-low::before {
+  content: "\F057F";
+}
+
+.mdi-volume-medium::before {
+  content: "\F0580";
+}
+
+.mdi-volume-variant-off::before {
+  content: "\F0E08";
+}
+
+.mdi-weather-night::before {
+  content: "\F0594";
+}
+
+.mdi-weather-sunny::before {
+  content: "\F0599";
+}

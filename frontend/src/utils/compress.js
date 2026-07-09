@@ -3,8 +3,10 @@
  */
 
 export async function compressImage(file, quality = 0.8, maxWidth = 1920, maxHeight = 1080) {
-  // 不压缩 GIF 和 SVG
-  if (file.type === 'image/gif' || file.type === 'image/svg+xml') {
+  const compressibleTypes = ['image/jpeg', 'image/png', 'image/webp']
+
+  // Only canvas-safe still image formats are compressed on the client.
+  if (!compressibleTypes.includes(file.type)) {
     return file
   }
   

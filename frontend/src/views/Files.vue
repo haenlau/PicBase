@@ -72,7 +72,7 @@
       <div v-if="selectedFiles.length > 0" class="batch-bar">
         <span class="batch-info">已选择 {{ selectedFiles.length }} 项</span>
         <div class="batch-actions">
-          <button class="btn-sm btn-secondary" @click="showBatchMoveDialog = true">
+          <button class="btn-sm btn-secondary" @click="moveSelectedFiles">
             <v-icon size="14">mdi-folder-move</v-icon>
             移动
           </button>
@@ -459,6 +459,7 @@ const loading = ref(false)
 const files = ref([])
 const directories = ref([])
 const allDirectories = ref([])
+const optimisticDirectories = ref(new Set())
 const currentDir = ref('')
 const selectedFiles = ref([])
 const searchQuery = ref('')
@@ -492,9 +493,6 @@ const confirmTitle = ref('')
 const confirmMessage = ref('')
 const confirmAction = ref(null)
 const deleteTarget = ref(null)
-
-// 批量移动
-const showBatchMoveDialog = ref(false)
 
 const toast = ref({ show: false, message: '', type: 'success', icon: 'mdi-check' })
 
@@ -547,22 +545,23 @@ const debouncedSearch = debounce(() => {
   fetchFiles()
 }, 300)
 
-async function fetchFiles() {
-  loading.value = true
+async function fetchFiles({ silent = false } = {}) {
+  if (!silent) loading.value = true
   try {
+    const parentDir = getCurrentParent()
     const params = {
       start: page.value * pageSize.value,
       count: pageSize.value,
       _t: Date.now() // 添加时间戳防止缓存
     }
-    if (currentDir.value) params.dir = currentDir.value
+    if (parentDir) params.dir = parentDir
     if (searchQuery.value) params.search = searchQuery.value
     if (filterChannel.value) params.channel = filterChannel.value
     
     // 同时获取文件列表和虚拟文件夹
     const [data, folderData] = await Promise.all([
       api.get('/api/manage/list?' + new URLSearchParams(params)),
-      api.get('/api/manage/folders?parent=' + encodeURIComponent(currentDir.value ? currentDir.value.replace(/\/$/, '') : ''))
+      api.get('/api/manage/folders?parent=' + encodeURIComponent(parentDir))
     ])
     
     // 过滤掉占位文件
@@ -574,7 +573,11 @@ async function fetchFiles() {
     // 合并虚拟文件夹和基于路径的文件夹
     const virtualFolders = (folderData.folders || []).map(f => f.path)
     const pathFolders = data.directories || []
-    const allFolders = [...new Set([...virtualFolders, ...pathFolders])]
+    const allFolders = mergeDirectoryLists(
+      virtualFolders,
+      pathFolders,
+      getVisibleOptimisticDirectories(parentDir)
+    )
     
     if (page.value === 0) {
       files.value = filteredFiles
@@ -585,26 +588,24 @@ async function fetchFiles() {
     
     hasMore.value = (data.files || []).length === pageSize.value
     
-    // 更新所有目录列表（用于移动弹窗）
-    fetchAllDirectories()
   } catch (err) {
-    showToast('加载失败', 'error')
+    if (!silent) showToast('加载失败', 'error')
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
 async function fetchAllDirectories() {
   try {
     const data = await api.get('/api/manage/list?count=-1&dir=')
-    allDirectories.value = data.directories || []
+    allDirectories.value = mergeDirectoryLists(data.directories || [], Array.from(optimisticDirectories.value))
   } catch (err) {
     console.error('Failed to fetch directories:', err)
   }
 }
 
 function navigateToDir(dir) {
-  currentDir.value = dir
+  currentDir.value = normalizeDirPath(dir)
   page.value = 0
   files.value = []
   directories.value = []
@@ -615,6 +616,56 @@ function navigateToDir(dir) {
 function getDirName(dir) {
   const parts = dir.split('/').filter(Boolean)
   return parts[parts.length - 1] || dir
+}
+
+function normalizeDirPath(dir) {
+  return (dir || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '')
+}
+
+function getCurrentParent() {
+  return normalizeDirPath(currentDir.value)
+}
+
+function getDirectoryParent(dir) {
+  const normalized = normalizeDirPath(dir)
+  const parts = normalized.split('/').filter(Boolean)
+  parts.pop()
+  return parts.join('/')
+}
+
+function mergeDirectoryLists(...lists) {
+  const merged = lists
+    .flat()
+    .map(normalizeDirPath)
+    .filter(Boolean)
+  return [...new Set(merged)].sort((a, b) => getDirName(a).localeCompare(getDirName(b), 'zh-CN'))
+}
+
+function getVisibleOptimisticDirectories(parent = getCurrentParent()) {
+  return Array.from(optimisticDirectories.value)
+    .map(normalizeDirPath)
+    .filter(dir => getDirectoryParent(dir) === parent)
+}
+
+function rememberOptimisticDirectory(dir) {
+  const normalized = normalizeDirPath(dir)
+  if (!normalized) return
+  optimisticDirectories.value = new Set([...optimisticDirectories.value, normalized])
+  directories.value = mergeDirectoryLists(directories.value, getVisibleOptimisticDirectories())
+  allDirectories.value = mergeDirectoryLists(allDirectories.value, [normalized])
+}
+
+function forgetOptimisticDirectory(dir) {
+  const normalized = normalizeDirPath(dir)
+  const next = new Set(optimisticDirectories.value)
+  next.delete(normalized)
+  optimisticDirectories.value = next
+  directories.value = directories.value.filter(item => normalizeDirPath(item) !== normalized)
+  allDirectories.value = allDirectories.value.filter(item => normalizeDirPath(item) !== normalized)
+}
+
+function sanitizeFolderName(name) {
+  return (name || '').replace(/[\/\\:*?"<>|]/g, '_').trim()
 }
 
 function loadMore() {
@@ -630,8 +681,7 @@ function getFileSize(file) {
 }
 
 function isImage(file) {
-  const type = file.metadata?.FileType
-  return type && type.startsWith('image/')
+  return getFileType(file.metadata?.FileType, file.name) === 'image'
 }
 
 function getFileUrl(file) {
@@ -734,20 +784,31 @@ async function confirmRename() {
       const oldName = file.name
       const dir = oldName.includes('/') ? oldName.substring(0, oldName.lastIndexOf('/') + 1) : ''
       const newNameFull = dir + newName.value
-      
+      const previousFiles = [...files.value]
+      const previousSelected = [...selectedFiles.value]
+
+      files.value = files.value.map(item => item.name === oldName ? { ...item, name: newNameFull } : item)
+      selectedFiles.value = selectedFiles.value.map(item => item.name === oldName ? { ...item, name: newNameFull } : item)
+      showRenameDialog.value = false
+
       // 后端使用 POST 方法
-      await api.post('/api/manage/rename/' + encodeURIComponent(oldName), {
-        newName: newNameFull
-      })
-      
-      showToast('重命名成功', 'success')
+      try {
+        await api.post('/api/manage/rename/' + encodeURIComponent(oldName), {
+          newName: newNameFull
+        })
+
+        showToast('重命名成功', 'success')
+        fetchFiles({ silent: true })
+      } catch (err) {
+        files.value = previousFiles
+        selectedFiles.value = previousSelected
+        showToast('重命名失败: ' + (err.message || ''), 'error')
+      }
     } else {
       // 文件夹重命名需要特殊处理
       showToast('文件夹重命名暂不支持', 'warning')
+      showRenameDialog.value = false
     }
-    
-    showRenameDialog.value = false
-    fetchFiles()
   } catch (err) {
     showToast('重命名失败: ' + (err.message || ''), 'error')
   }
@@ -758,29 +819,42 @@ function moveFile(file) {
   moveTarget.value = { type: 'file', files: [file] }
   targetFolder.value = ''
   showMoveDialog.value = true
+  fetchAllDirectories()
+}
+
+function moveSelectedFiles() {
+  if (selectedFiles.value.length === 0) return
+  moveTarget.value = { type: 'file', files: [...selectedFiles.value] }
+  targetFolder.value = ''
+  showMoveDialog.value = true
+  fetchAllDirectories()
 }
 
 async function confirmMove() {
   const targets = moveTarget.value?.files || []
   if (targets.length === 0) return
-  
+
+  const previousFiles = [...files.value]
+  const targetDir = normalizeDirPath(targetFolder.value)
+  const currentParent = getCurrentParent()
+  const movedNames = new Set(targets.map(file => file.name))
+  showMoveDialog.value = false
+  selectedFiles.value = []
+
+  if (targetDir !== currentParent) {
+    files.value = files.value.filter(file => !movedNames.has(file.name))
+  }
+
   try {
-    for (const file of targets) {
+    await Promise.all(targets.map(file => {
       const oldName = file.name
-      const fileName = getFileName(file)
-      const newNameFull = targetFolder.value 
-        ? targetFolder.value.replace(/\/$/, '') + '/' + fileName
-        : fileName
-      
-      // 后端移动 API 使用 dist 参数
-      await api.post('/api/manage/move/' + encodeURIComponent(oldName) + '?dist=' + encodeURIComponent(targetFolder.value))
-    }
+      return api.post('/api/manage/move/' + encodeURIComponent(oldName) + '?dist=' + encodeURIComponent(targetDir))
+    }))
     
     showToast(`移动成功 ${targets.length} 个文件`, 'success')
-    showMoveDialog.value = false
-    selectedFiles.value = []
-    fetchFiles()
+    fetchFiles({ silent: true })
   } catch (err) {
+    files.value = previousFiles
     showToast('移动失败: ' + (err.message || ''), 'error')
   }
 }
@@ -788,19 +862,36 @@ async function confirmMove() {
 // 新建文件夹
 async function createFolder() {
   if (!newFolderName.value) return
-  
+
+  const folderName = sanitizeFolderName(newFolderName.value)
+  if (!folderName) {
+    showToast('文件夹名称无效', 'warning')
+    return
+  }
+
+  const parent = getCurrentParent()
+  const optimisticPath = parent ? `${parent}/${folderName}` : folderName
+  rememberOptimisticDirectory(optimisticPath)
+  showNewFolderDialog.value = false
+  newFolderName.value = ''
+
   try {
     // 使用文件夹 API 创建虚拟文件夹
-    await api.post('/api/manage/folders', {
-      name: newFolderName.value,
-      parent: currentDir.value ? currentDir.value.replace(/\/$/, '') : ''
+    const result = await api.post('/api/manage/folders', {
+      name: folderName,
+      parent
     })
+
+    const serverPath = normalizeDirPath(result.folder?.path || optimisticPath)
+    if (serverPath !== optimisticPath) {
+      forgetOptimisticDirectory(optimisticPath)
+      rememberOptimisticDirectory(serverPath)
+    }
     
     showToast('文件夹创建成功', 'success')
-    showNewFolderDialog.value = false
-    newFolderName.value = ''
-    fetchFiles()
+    fetchFiles({ silent: true })
   } catch (err) {
+    forgetOptimisticDirectory(optimisticPath)
     showToast('创建文件夹失败: ' + (err.message || ''), 'error')
   }
 }
@@ -860,10 +951,18 @@ async function deleteFile(file) {
 }
 
 async function deleteFolder(dir) {
+  const previousDirectories = [...directories.value]
+  const previousFiles = [...files.value]
+  const normalizedDir = normalizeDirPath(dir)
+  const dirName = normalizedDir ? normalizedDir + '/' : ''
+  directories.value = directories.value.filter(d => normalizeDirPath(d) !== normalizedDir)
+  files.value = files.value.filter(f => !f.name.startsWith(dirName))
+  forgetOptimisticDirectory(normalizedDir)
+
   try {
     // 删除文件夹里的所有文件
     const timestamp = Date.now()
-    const data = await api.get('/api/manage/list?count=-1&dir=' + encodeURIComponent(dir) + '&_t=' + timestamp)
+    const data = await api.get('/api/manage/list?count=-1&dir=' + encodeURIComponent(normalizedDir) + '&_t=' + timestamp)
     const filesToDelete = data.files || []
     
     for (const file of filesToDelete) {
@@ -871,37 +970,36 @@ async function deleteFolder(dir) {
     }
     
     // 删除虚拟文件夹
-    const cleanDir = dir.endsWith('/') ? dir.slice(0, -1) : dir
-    await api.del('/api/manage/folders?path=' + encodeURIComponent(cleanDir))
-    
-    // 立即从本地列表中移除文件夹
-    const dirName = dir.endsWith('/') ? dir : dir + '/'
-    directories.value = directories.value.filter(d => d !== dir && d !== dirName)
-    
-    // 如果文件夹里的文件也在当前列表中，也要移除
-    files.value = files.value.filter(f => !f.name.startsWith(dirName))
+    await api.del('/api/manage/folders?path=' + encodeURIComponent(normalizedDir))
     
     showToast('文件夹删除成功', 'success')
   } catch (err) {
+    directories.value = previousDirectories
+    files.value = previousFiles
     showToast('删除文件夹失败', 'error')
   }
 }
 
 async function batchDelete() {
-  let successCount = 0
-  for (const file of selectedFiles.value) {
-    try {
-      await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
-      successCount++
-    } catch (err) {
-      console.error('Delete failed:', file.name, err)
-    }
-  }
-  
-  // 立即从列表中移除
-  const deletedNames = new Set(selectedFiles.value.map(f => f.name))
+  const targets = [...selectedFiles.value]
+  const previousFiles = [...files.value]
+  const deletedNames = new Set(targets.map(f => f.name))
   files.value = files.value.filter(f => !deletedNames.has(f.name))
   selectedFiles.value = []
+
+  const results = await Promise.allSettled(
+    targets.map(file => api.del('/api/manage/delete/' + encodeURIComponent(file.name)))
+  )
+  const successCount = results.filter(result => result.status === 'fulfilled').length
+  const failedCount = results.length - successCount
+
+  if (failedCount > 0) {
+    files.value = previousFiles
+    showToast(`删除失败 ${failedCount} 个文件`, 'error')
+    fetchFiles({ silent: true })
+    return
+  }
+
   showToast(`成功删除 ${successCount} 个文件`, 'success')
 }
 

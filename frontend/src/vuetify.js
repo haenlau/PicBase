@@ -1,36 +1,34 @@
 import 'vuetify/styles'
-import '@mdi/font/css/materialdesignicons.css'
+import './styles/mdi-subset.css'
 import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 
 const lightTheme = {
   dark: false,
   colors: {
-    primary: '#6750A4',
-    'primary-darken-1': '#21005D',
-    secondary: '#625B71',
-    'secondary-darken-1': '#1D192B',
-    tertiary: '#7D5260',
+    primary: '#0F7CFF',
+    'primary-darken-1': '#075DCC',
+    secondary: '#00A6FF',
+    'secondary-darken-1': '#0077B8',
+    tertiary: '#F38020',
     error: '#B3261E',
     'error-darken-1': '#601410',
-    surface: '#FFFBFE',
-    'surface-variant': '#E7E0EC',
-    'on-surface': '#1C1B1F',
-    'on-surface-variant': '#49454F',
-    background: '#FEF7FF',
-    'on-background': '#1C1B1F'
+    surface: '#FFFFFF',
+    'surface-variant': '#EAF4FF',
+    'on-surface': '#18181B',
+    'on-surface-variant': '#52525B',
+    background: '#FAFAFA',
+    'on-background': '#18181B'
   }
 }
 
 const darkTheme = {
   dark: true,
   colors: {
-    primary: '#D0BCFF',
-    'primary-darken-1': '#381E72',
-    secondary: '#CCC2DC',
-    'secondary-darken-1': '#332D41',
-    tertiary: '#EFB8C8',
+    primary: '#5AA9FF',
+    'primary-darken-1': '#0D3D66',
+    secondary: '#37D4FF',
+    'secondary-darken-1': '#0E5266',
+    tertiary: '#FF9B45',
     error: '#F2B8B5',
     'error-darken-1': '#8C1D18',
     surface: '#1C1B1F',
@@ -43,8 +41,6 @@ const darkTheme = {
 }
 
 const vuetify = createVuetify({
-  components,
-  directives,
   theme: {
     defaultTheme: 'lightTheme',
     themes: {

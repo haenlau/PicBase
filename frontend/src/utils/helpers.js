@@ -21,36 +21,39 @@ export function formatTime(timestamp) {
 }
 
 export function getFileType(mimeType, fileName) {
-  if (!mimeType && fileName) {
-    const ext = fileName.split('.').pop().toLowerCase()
-    const extMap = {
-      'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'gif': 'image',
-      'webp': 'image', 'svg': 'image', 'bmp': 'image',
-      'mp4': 'video', 'webm': 'video', 'mov': 'video',
-      'mp3': 'audio', 'wav': 'audio', 'ogg': 'audio',
-      'pdf': 'document', 'doc': 'document', 'docx': 'document',
-      'zip': 'archive', 'rar': 'archive', '7z': 'archive'
-    }
-    return extMap[ext] || 'other'
+  const mime = (mimeType || '').toLowerCase()
+  const ext = (fileName?.split('.').pop() || '').toLowerCase()
+  const extMap = {
+    jpg: 'image', jpeg: 'image', jfif: 'image', pjpeg: 'image', pjp: 'image',
+    png: 'image', apng: 'image', gif: 'image', webp: 'image', svg: 'image',
+    bmp: 'image', dib: 'image', tif: 'image', tiff: 'image', avif: 'image',
+    heic: 'image', heif: 'image', ico: 'image', cur: 'image',
+    mp4: 'video', webm: 'video', mov: 'video', m4v: 'video', mkv: 'video',
+    avi: 'video',
+    mp3: 'audio', wav: 'audio', ogg: 'audio', flac: 'audio', aac: 'audio',
+    pdf: 'document', doc: 'document', docx: 'document',
+    zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive'
   }
+
+  if (extMap[ext]) return extMap[ext]
   
-  if (mimeType.startsWith('image/')) return 'image'
-  if (mimeType.startsWith('video/')) return 'video'
-  if (mimeType.startsWith('audio/')) return 'audio'
-  if (mimeType.includes('pdf') || mimeType.includes('document')) return 'document'
+  if (mime.startsWith('image/')) return 'image'
+  if (mime.startsWith('video/')) return 'video'
+  if (mime.startsWith('audio/')) return 'audio'
+  if (mime.includes('pdf') || mime.includes('document')) return 'document'
   return 'other'
 }
 
 export function getFileIcon(type) {
   const icons = {
-    image: 'image',
-    video: 'videocam',
-    audio: 'audiotrack',
-    document: 'description',
-    archive: 'folder_zip',
-    other: 'insert_drive_file'
+    image: 'mdi-file-image',
+    video: 'mdi-file-video',
+    audio: 'mdi-file-music',
+    document: 'mdi-file-document',
+    archive: 'mdi-folder-zip',
+    other: 'mdi-file'
   }
-  return icons[type] || 'insert_drive_file'
+  return icons[type] || 'mdi-file'
 }
 
 export function getFileColor(type) {
