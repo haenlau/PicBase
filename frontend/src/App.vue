@@ -59,12 +59,14 @@
     </v-app-bar>
 
     <!-- 主内容区 -->
-    <v-main>
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
+    <v-main class="main-layout">
+      <div class="main-content">
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </div>
       <footer class="app-footer">
         Part of Air1 Quick Tools · Powered by Cloudflare
       </footer>
@@ -228,13 +230,23 @@ router.afterEach(() => {
   border-top: 1px solid var(--border);
 }
 
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
 .app-footer {
-  padding: 12px var(--space-2xl) 20px;
+  flex: 0 0 auto;
+  padding: 12px var(--space-2xl);
   color: var(--text-tertiary);
   font-size: 12px;
   text-align: center;
-  border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-primary) 92%, var(--air1-blue));
 }
 
 /* 过渡动画 */

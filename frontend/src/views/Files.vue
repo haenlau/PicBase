@@ -113,9 +113,11 @@
           <div class="file-overlay">
             <button class="overlay-btn" @click.stop="renameFolder(dir)" title="重命名">
               <v-icon size="18">mdi-pencil</v-icon>
+              <span class="overlay-btn-label">重命名</span>
             </button>
             <button class="overlay-btn overlay-btn-danger" @click.stop="confirmDeleteFolder(dir)" title="删除">
               <v-icon size="18">mdi-delete</v-icon>
+              <span class="overlay-btn-label">删除</span>
             </button>
           </div>
         </div>
@@ -153,18 +155,23 @@
           <div class="file-overlay">
             <button class="overlay-btn" @click.stop="showLink(file)" title="复制链接">
               <v-icon size="18">mdi-link</v-icon>
+              <span class="overlay-btn-label">链接</span>
             </button>
             <button class="overlay-btn" @click.stop="previewFile(file)" title="预览">
               <v-icon size="18">mdi-eye</v-icon>
+              <span class="overlay-btn-label">预览</span>
             </button>
             <button class="overlay-btn" @click.stop="renameFile(file)" title="重命名">
               <v-icon size="18">mdi-pencil</v-icon>
+              <span class="overlay-btn-label">重命名</span>
             </button>
             <button class="overlay-btn" @click.stop="moveFile(file)" title="移动">
               <v-icon size="18">mdi-folder-move</v-icon>
+              <span class="overlay-btn-label">移动</span>
             </button>
             <button class="overlay-btn overlay-btn-danger" @click.stop="confirmDelete(file)" title="删除">
               <v-icon size="18">mdi-delete</v-icon>
+              <span class="overlay-btn-label">删除</span>
             </button>
           </div>
           
@@ -1387,8 +1394,11 @@ function showToast(message, type = 'success') {
   display: flex;
   align-items: center;
   justify-content: center;
+  align-content: center;
+  flex-wrap: wrap;
   gap: var(--space-sm);
-  background: rgba(0, 0, 0, 0.5);
+  padding: var(--space-md);
+  background: rgba(0, 0, 0, 0.68);
   opacity: 0;
   transition: opacity var(--transition-normal);
 }
@@ -1401,23 +1411,42 @@ function showToast(message, type = 'success') {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: white;
-  border: none;
+  gap: 4px;
+  min-width: 64px;
+  height: 32px;
+  padding: 0 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   cursor: pointer;
   transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 
 .overlay-btn:hover {
-  transform: scale(1.1);
+  background: var(--bg-primary);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.overlay-btn-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .overlay-btn-danger {
   background: var(--error);
+  border-color: var(--error);
   color: white;
+}
+
+.overlay-btn-danger:hover {
+  background: var(--error);
+  color: white;
+  opacity: 0.92;
 }
 
 .file-check {
