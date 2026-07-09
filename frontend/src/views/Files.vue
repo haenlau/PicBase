@@ -521,14 +521,32 @@ const deleteTarget = ref(null)
 
 const toast = ref({ show: false, message: '', type: 'success', icon: 'mdi-check' })
 
-const fileTypeOptions = [
-  { value: '', label: '全部类型' },
-  { value: 'image', label: '图片' },
-  { value: 'video', label: '视频' },
-  { value: 'audio', label: '音频' },
-  { value: 'document', label: '文档' },
-  { value: 'archive', label: '压缩包' },
-  { value: 'other', label: '其他' }
+const imageFormatLabels = {
+  jpg: 'JPG',
+  png: 'PNG',
+  webp: 'WebP',
+  gif: 'GIF',
+  svg: 'SVG',
+  avif: 'AVIF',
+  heic: 'HEIC',
+  tiff: 'TIFF',
+  bmp: 'BMP',
+  ico: 'ICO',
+  apng: 'APNG'
+}
+
+const imageFormatOrder = [
+  'jpg',
+  'png',
+  'webp',
+  'gif',
+  'svg',
+  'avif',
+  'heic',
+  'tiff',
+  'bmp',
+  'ico',
+  'apng'
 ]
 
 const channelOptions = computed(() => {
@@ -544,8 +562,38 @@ const allSelected = computed(() => {
   return visibleFiles.value.length > 0 && visibleFiles.value.every(file => isSelected(file)) && selectedFiles.value.some(file => visibleNames.has(file.name))
 })
 
+const fileTypeOptions = computed(() => {
+  const formats = new Set()
+
+  files.value.forEach(file => {
+    if (!isImage(file)) return
+
+    const format = getImageFormatForFile(file)
+    if (format) {
+      formats.add(format)
+    }
+  })
+
+  const orderedFormats = [...formats].sort((a, b) => {
+    const aIndex = imageFormatOrder.indexOf(a)
+    const bIndex = imageFormatOrder.indexOf(b)
+    if (aIndex !== -1 || bIndex !== -1) {
+      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex)
+    }
+    return a.localeCompare(b)
+  })
+
+  return [
+    { value: '', label: '全部类型' },
+    ...orderedFormats.map(format => ({
+      value: format,
+      label: imageFormatLabels[format] || format.toUpperCase()
+    }))
+  ]
+})
+
 const visibleFiles = computed(() => {
-  const filtered = files.value.filter(file => !filterType.value || getFileTypeForFile(file) === filterType.value)
+  const filtered = files.value.filter(file => !filterType.value || getImageFormatForFile(file) === filterType.value)
   return [...filtered].sort(compareFiles)
 })
 
@@ -581,6 +629,12 @@ watch(filterChannel, () => {
 
 watch(filterType, () => {
   selectedFiles.value = []
+})
+
+watch(fileTypeOptions, options => {
+  if (filterType.value && !options.some(option => option.value === filterType.value)) {
+    filterType.value = ''
+  }
 })
 
 function clearSearch() {
@@ -754,6 +808,33 @@ function loadMore() {
 
 function getFileTypeForFile(file) {
   return getFileType(file.metadata?.FileType, file.name)
+}
+
+function getImageFormatForFile(file) {
+  const fileName = getFileName(file).toLowerCase()
+  const ext = fileName.includes('.') ? fileName.split('.').pop() : ''
+  const mime = (file.metadata?.FileType || '').toLowerCase()
+
+  return normalizeImageFormat(ext || mime.replace('image/', ''))
+}
+
+function normalizeImageFormat(format) {
+  const normalized = (format || '').toLowerCase()
+  const aliases = {
+    jpeg: 'jpg',
+    jfif: 'jpg',
+    pjpeg: 'jpg',
+    pjp: 'jpg',
+    heif: 'heic',
+    tif: 'tiff',
+    dib: 'bmp',
+    cur: 'ico',
+    'x-icon': 'ico',
+    'vnd.microsoft.icon': 'ico',
+    'svg+xml': 'svg'
+  }
+
+  return aliases[normalized] || normalized
 }
 
 function getFileTimestamp(file) {
