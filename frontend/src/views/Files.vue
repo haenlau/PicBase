@@ -1511,11 +1511,12 @@ function showToast(message, type = 'success') {
 .file-overlay {
   position: absolute;
   inset: 0;
-  display: flex;
+  display: grid;
   align-items: center;
+  justify-items: center;
   justify-content: center;
   align-content: center;
-  flex-wrap: wrap;
+  grid-template-columns: repeat(2, 72px);
   gap: var(--space-sm);
   padding: var(--space-md);
   background: rgba(0, 0, 0, 0.68);
@@ -1532,9 +1533,9 @@ function showToast(message, type = 'success') {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 64px;
+  width: 72px;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1542,6 +1543,10 @@ function showToast(message, type = 'success') {
   cursor: pointer;
   transition: all var(--transition-fast);
   box-shadow: var(--shadow-sm);
+}
+
+.file-overlay .overlay-btn:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .overlay-btn:hover {
@@ -2081,6 +2086,21 @@ function showToast(message, type = 'success') {
   
   .file-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .file-overlay {
+    grid-template-columns: repeat(2, 40px);
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .overlay-btn {
+    width: 40px;
+    padding: 0;
+  }
+
+  .overlay-btn-label {
+    display: none;
   }
   
   .list-col-size,
