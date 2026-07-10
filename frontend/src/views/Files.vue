@@ -58,7 +58,7 @@
             <v-icon size="18">mdi-view-list</v-icon>
           </button>
         </div>
-        <button class="btn-icon" @click="fetchFiles" :class="{ spinning: loading }">
+        <button class="btn-icon" @click="refreshFiles()" :class="{ spinning: loading }">
           <v-icon size="18">mdi-refresh</v-icon>
         </button>
       </div>
@@ -670,13 +670,15 @@ function savePreferences() {
   }))
 }
 
-async function fetchFiles({ silent = false } = {}) {
+async function fetchFiles({ silent = false, append = false, preservePages = false } = {}) {
   if (!silent) loading.value = true
   try {
     const parentDir = getCurrentParent()
+    const requestStart = append ? page.value * pageSize.value : 0
+    const requestCount = preservePages ? (page.value + 1) * pageSize.value : pageSize.value
     const params = {
-      start: page.value * pageSize.value,
-      count: pageSize.value,
+      start: requestStart,
+      count: requestCount,
       _t: Date.now() // 添加时间戳防止缓存
     }
     if (parentDir) params.dir = parentDir
@@ -704,20 +706,31 @@ async function fetchFiles({ silent = false } = {}) {
       getVisibleOptimisticDirectories(parentDir)
     )
     
-    if (page.value === 0) {
+    if (append) {
+      const existingNames = new Set(files.value.map(file => file.name))
+      files.value.push(...filteredFiles.filter(file => !existingNames.has(file.name)))
+    } else {
       files.value = filteredFiles
       directories.value = allFolders
-    } else {
-      files.value.push(...filteredFiles)
     }
-    
-    hasMore.value = (data.files || []).length === pageSize.value
+
+    const totalCount = Number(data.totalCount)
+    hasMore.value = Number.isFinite(totalCount)
+      ? files.value.length < totalCount
+      : (data.files || []).length === requestCount
+
+    return true
     
   } catch (err) {
     if (!silent) showToast('加载失败', 'error')
+    return false
   } finally {
     if (!silent) loading.value = false
   }
+}
+
+function refreshFiles({ silent = false } = {}) {
+  return fetchFiles({ silent, preservePages: true })
 }
 
 async function fetchAllDirectories() {
@@ -801,9 +814,33 @@ function sanitizeFolderName(name) {
   return (name || '').replace(/[\/\\:*?"<>|]/g, '_').trim()
 }
 
-function loadMore() {
+async function loadMore() {
+  if (loading.value || !hasMore.value) return
   page.value++
-  fetchFiles()
+  const loaded = await fetchFiles({ append: true })
+  if (!loaded) page.value--
+}
+
+async function settleWithConcurrency(items, limit, task) {
+  if (items.length === 0) return []
+
+  const results = new Array(items.length)
+  let cursor = 0
+
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++
+      try {
+        results[index] = { status: 'fulfilled', value: await task(items[index], index) }
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason }
+      }
+    }
+  }
+
+  const workerCount = Math.min(Math.max(1, limit), items.length)
+  await Promise.all(Array.from({ length: workerCount }, worker))
+  return results
 }
 
 function getFileTypeForFile(file) {
@@ -995,7 +1032,7 @@ async function confirmRename() {
         })
 
         showToast('重命名成功', 'success')
-        fetchFiles({ silent: true })
+        refreshFiles({ silent: true })
       } catch (err) {
         files.value = previousFiles
         selectedFiles.value = previousSelected
@@ -1043,16 +1080,19 @@ async function confirmMove() {
   }
 
   try {
-    await Promise.all(targets.map(file => {
+    const results = await settleWithConcurrency(targets, 4, file => {
       const oldName = file.name
       return api.post('/api/manage/move/' + encodeURIComponent(oldName) + '?dist=' + encodeURIComponent(targetDir))
-    }))
+    })
+    const failed = results.find(result => result.status === 'rejected')
+    if (failed) throw failed.reason
     
     showToast(`移动成功 ${targets.length} 个文件`, 'success')
-    fetchFiles({ silent: true })
+    refreshFiles({ silent: true })
   } catch (err) {
     files.value = previousFiles
     showToast('移动失败: ' + (err.message || ''), 'error')
+    await refreshFiles({ silent: true })
   }
 }
 
@@ -1086,7 +1126,7 @@ async function createFolder() {
     }
     
     showToast('文件夹创建成功', 'success')
-    fetchFiles({ silent: true })
+    refreshFiles({ silent: true })
   } catch (err) {
     forgetOptimisticDirectory(optimisticPath)
     showToast('创建文件夹失败: ' + (err.message || ''), 'error')
@@ -1143,7 +1183,7 @@ async function deleteFile(file) {
   } catch (err) {
     // 如果失败，需要回滚（重新加载）
     showToast('删除失败', 'error')
-    fetchFiles()
+    refreshFiles()
   }
 }
 
@@ -1159,12 +1199,16 @@ async function deleteFolder(dir) {
   try {
     // 删除文件夹里的所有文件
     const timestamp = Date.now()
-    const data = await api.get('/api/manage/list?count=-1&dir=' + encodeURIComponent(normalizedDir) + '&_t=' + timestamp)
+    const data = await api.get('/api/manage/list?count=-1&recursive=true&dir=' + encodeURIComponent(normalizedDir) + '&_t=' + timestamp)
     const filesToDelete = data.files || []
     
-    for (const file of filesToDelete) {
-      await api.del('/api/manage/delete/' + encodeURIComponent(file.name))
-    }
+    const deleteResults = await settleWithConcurrency(
+      filesToDelete,
+      4,
+      file => api.del('/api/manage/delete/' + encodeURIComponent(file.name))
+    )
+    const failedDelete = deleteResults.find(result => result.status === 'rejected')
+    if (failedDelete) throw failedDelete.reason
     
     // 删除虚拟文件夹
     await api.del('/api/manage/folders?path=' + encodeURIComponent(normalizedDir))
@@ -1174,6 +1218,7 @@ async function deleteFolder(dir) {
     directories.value = previousDirectories
     files.value = previousFiles
     showToast('删除文件夹失败', 'error')
+    await refreshFiles({ silent: true })
   }
 }
 
@@ -1184,8 +1229,10 @@ async function batchDelete() {
   files.value = files.value.filter(f => !deletedNames.has(f.name))
   selectedFiles.value = []
 
-  const results = await Promise.allSettled(
-    targets.map(file => api.del('/api/manage/delete/' + encodeURIComponent(file.name)))
+  const results = await settleWithConcurrency(
+    targets,
+    4,
+    file => api.del('/api/manage/delete/' + encodeURIComponent(file.name))
   )
   const successCount = results.filter(result => result.status === 'fulfilled').length
   const failedCount = results.length - successCount
@@ -1193,7 +1240,7 @@ async function batchDelete() {
   if (failedCount > 0) {
     files.value = previousFiles
     showToast(`删除失败 ${failedCount} 个文件`, 'error')
-    fetchFiles({ silent: true })
+    refreshFiles({ silent: true })
     return
   }
 

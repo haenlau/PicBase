@@ -1,7 +1,7 @@
 /* Material Design Icons subset used by PicBase. */
 @font-face {
   font-family: "Material Design Icons";
-  src: url("@mdi/font/fonts/materialdesignicons-webfont.woff2?v=7.4.47") format("woff2");
+  src: url("/fonts/mdi-subset.woff2?v=1") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -284,6 +284,10 @@
 
 .mdi-link::before {
   content: "\F0337";
+}
+
+.mdi-link-variant::before {
+  content: "\F0339";
 }
 
 .mdi-loading::before {

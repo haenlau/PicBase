@@ -60,6 +60,10 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         run: npm ci --omit=dev --omit=optional
 
+      - name: Build frontend
+        if: steps.check.outputs.skip != 'true'
+        run: npm run build
+
       - name: Generate worker routes
         if: steps.check.outputs.skip != 'true'
         run: node deploy/worker/generate-routes.js

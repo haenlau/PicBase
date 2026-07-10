@@ -14,8 +14,7 @@
   "dependencies": {
     "vue": "^3.4.0",
     "vue-router": "^4.3.0",
-    "vuetify": "^3.6.0",
-    "@mdi/font": "^7.4.0"
+    "vuetify": "^3.6.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.7",

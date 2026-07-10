@@ -133,11 +133,13 @@ async function processFileUpload(context, formdata = null) {
 
     // 获取文件信息
     const time = new Date().getTime();
-    const file = formdata.get('file');
-    const fileType = file.type;
+    let file = formdata.get('file');
+    if (!file || typeof file.name !== 'string') {
+        return createResponse('Error: upload file is missing or invalid', { status: 400 });
+    }
+
+    let fileType = file.type;
     let fileName = file.name;
-    const fileSizeBytes = file.size; // 文件大小，单位字节
-    const fileSize = (fileSizeBytes / 1024 / 1024).toFixed(2); // 文件大小，单位MB
 
     // 检查fileType和fileName是否存在
     if (fileType === null || fileType === undefined || fileName === null || fileName === undefined) {
@@ -151,6 +153,15 @@ async function processFileUpload(context, formdata = null) {
     }
     // 如果文件被清理过（如SVG），使用清理后的文件
     const validatedFile = fileValidation.file || file;
+    if (validatedFile !== file) {
+        file = validatedFile;
+        fileType = file.type;
+        fileName = file.name;
+        formdata.set('file', file, file.name);
+    }
+
+    const fileSizeBytes = file.size; // 文件大小，单位字节
+    const fileSize = (fileSizeBytes / 1024 / 1024).toFixed(2); // 文件大小，单位MB
 
     // 提取图片尺寸
     let imageDimensions = null;
@@ -504,7 +515,7 @@ async function uploadFileToTelegram(context, fullId, metadata, fileExt, fileName
     // GIF ICO 等发送接口特殊处理
     if (fileType === 'image/gif' || fileType === 'image/webp' || fileExt === 'gif' || fileExt === 'webp') {
         sendFunction = { 'url': 'sendAnimation', 'type': 'animation' };
-    } else if (fileType === 'image/svg+xml' || fileType === 'image/x-icon' || fileType === 'image/vnd.microsoft.icon' || fileExt === 'ico') {
+    } else if (fileType === 'image/svg+xml' || fileType === 'image/x-icon' || fileType === 'image/vnd.microsoft.icon' || fileExt === 'ico' || fileExt === 'cur') {
         sendFunction = { 'url': 'sendDocument', 'type': 'document' };
     }
 

@@ -34,7 +34,7 @@
       ref="fileInput"
       type="file"
       multiple
-      accept="image/*,.apng,.avif,.bmp,.cur,.gif,.heic,.heif,.ico,.jfif,.jpeg,.jpg,.pjp,.pjpeg,.png,.svg,.tif,.tiff,.webp"
+      accept="image/*,.apng,.avif,.bmp,.cur,.dib,.gif,.heic,.heif,.ico,.jfif,.jpeg,.jpg,.pjp,.pjpeg,.png,.svg,.tif,.tiff,.webp"
       class="d-none"
       @change="handleFileSelect"
     />
@@ -184,6 +184,7 @@
             <button
               class="btn-icon btn-icon-ghost"
               title="移除"
+              :disabled="file.status === 'uploading' || file.preparing"
               @click="removeFile(file.id)"
             >
               <v-icon size="16">mdi-close</v-icon>
@@ -400,6 +401,11 @@ async function prepareFile(fileObj) {
 }
 
 function removeFile(id) {
+  const file = files.value.find(item => item.id === id)
+  if (file?.status === 'uploading' || file?.preparing) {
+    showToast('文件处理中，暂时无法移除', 'warning')
+    return
+  }
   files.value = files.value.filter(f => f.id !== id)
 }
 
@@ -491,10 +497,16 @@ async function uploadFile(fileObj) {
 }
 
 async function retryUpload(fileObj) {
+  if (uploading.value) return
+  uploading.value = true
   fileObj.status = 'pending'
   fileObj.progress = 0
   fileObj.error = null
-  await uploadFile(fileObj)
+  try {
+    await uploadFile(fileObj)
+  } finally {
+    uploading.value = false
+  }
 }
 
 async function retryFailed() {

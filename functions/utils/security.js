@@ -5,31 +5,33 @@
 
 // 允许的文件类型配置 - 仅图片格式
 export const ALLOWED_MIME_TYPES = {
-  'image/jpeg': ['.jpg', '.jpeg'],
-  'image/png': ['.png'],
+  'image/jpeg': ['.jpg', '.jpeg', '.jfif', '.pjp', '.pjpeg'],
+  'image/png': ['.png', '.apng'],
+  'image/apng': ['.apng'],
   'image/webp': ['.webp'],
   'image/gif': ['.gif'],
   'image/tiff': ['.tiff', '.tif'],
-  'image/bmp': ['.bmp'],
+  'image/bmp': ['.bmp', '.dib'],
+  'image/x-ms-bmp': ['.bmp', '.dib'],
   'image/heic': ['.heic'],
   'image/heif': ['.heif'],
   'image/avif': ['.avif'],
-  'image/x-icon': ['.ico'],
-  'image/vnd.microsoft.icon': ['.ico'],
+  'image/x-icon': ['.ico', '.cur'],
+  'image/vnd.microsoft.icon': ['.ico', '.cur'],
   'image/svg+xml': ['.svg'],
 }
 
 // 允许的文件扩展名
 export const ALLOWED_EXTENSIONS = [
-  '.jpg', '.jpeg',
-  '.png',
+  '.jpg', '.jpeg', '.jfif', '.pjp', '.pjpeg',
+  '.png', '.apng',
   '.webp',
   '.gif',
   '.tiff', '.tif',
-  '.bmp',
+  '.bmp', '.dib',
   '.heic', '.heif',
   '.avif',
-  '.ico',
+  '.ico', '.cur',
   '.svg',
 ]
 
@@ -49,7 +51,7 @@ export function validateFileType(file) {
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     return {
       allowed: false,
-      reason: `不支持的文件格式: ${ext}。仅支持图片格式 (JPEG, PNG, WebP, GIF, TIFF, BMP, HEIC, AVIF, ICO, SVG)`
+      reason: `不支持的文件格式: ${ext}。仅支持图片格式 (JPEG, PNG/APNG, WebP, GIF, TIFF, BMP, HEIC, AVIF, ICO/CUR, SVG)`
     }
   }
   
@@ -117,16 +119,22 @@ export function getSafeContentType(fileName, originalMimeType) {
   const safeMimeMap = {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
+    '.jfif': 'image/jpeg',
+    '.pjp': 'image/jpeg',
+    '.pjpeg': 'image/jpeg',
     '.png': 'image/png',
+    '.apng': 'image/apng',
     '.gif': 'image/gif',
     '.webp': 'image/webp',
     '.bmp': 'image/bmp',
+    '.dib': 'image/bmp',
     '.tiff': 'image/tiff',
     '.tif': 'image/tiff',
     '.heic': 'image/heic',
     '.heif': 'image/heif',
     '.avif': 'image/avif',
     '.ico': 'image/x-icon',
+    '.cur': 'image/x-icon',
     '.svg': 'image/svg+xml',
   }
   
