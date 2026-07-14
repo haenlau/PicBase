@@ -250,6 +250,49 @@
         </v-card>
       </v-col>
 
+      <!-- API 上传 -->
+      <v-col cols="12" md="6">
+        <v-card>
+          <v-card-title class="d-flex align-center">
+            <v-icon color="teal" class="mr-2">mdi-send-variant</v-icon>
+            API 传图
+            <v-spacer />
+            <v-chip size="small" color="info" variant="tonal">可选</v-chip>
+          </v-card-title>
+          <v-divider />
+          <v-card-text>
+            <p class="text-body-2 mb-4">
+              在“安全设置”中创建拥有 <code>upload</code> 权限的 API Token 后，可以通过脚本直接上传图片。
+            </p>
+
+            <v-alert type="warning" variant="tonal" class="mb-4">
+              Token 明文只会在创建后显示一次，请立即复制保存。
+            </v-alert>
+
+            <v-table density="compact" class="mb-4">
+              <tbody>
+                <tr>
+                  <td class="font-weight-bold">请求地址</td>
+                  <td><code>POST /upload</code></td>
+                </tr>
+                <tr>
+                  <td class="font-weight-bold">认证头</td>
+                  <td><code>Authorization: Bearer imgbed_xxx</code></td>
+                </tr>
+                <tr>
+                  <td class="font-weight-bold">文件字段</td>
+                  <td><code>file</code></td>
+                </tr>
+              </tbody>
+            </v-table>
+
+            <v-sheet class="api-code pa-3" rounded="sm">
+              <pre><code>curl.exe -X POST "https://你的域名/upload" -H "Authorization: Bearer imgbed_xxx" -F "file=@C:\path\image.png"</code></pre>
+            </v-sheet>
+          </v-card-text>
+        </v-card>
+      </v-col>
+
       <!-- 配置总览 -->
       <v-col cols="12" md="6">
         <v-card>
@@ -364,5 +407,15 @@ code {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.875em;
+}
+
+.api-code {
+  background: rgba(var(--v-theme-surface-variant), 0.35);
+}
+
+.api-code pre {
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre;
 }
 </style>
