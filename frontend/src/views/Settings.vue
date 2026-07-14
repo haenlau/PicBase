@@ -5,116 +5,175 @@
       <p class="page-subtitle">配置管理员账号、API Token 和安全选项</p>
     </div>
 
-    <div class="settings-grid">
-      <!-- 管理员设置 -->
-      <div class="settings-card">
-        <div class="card-header">
-          <v-icon size="20" class="card-icon">mdi-shield-account</v-icon>
-          <h3 class="card-title">管理员设置</h3>
-        </div>
-        <div class="card-body">
-          <div class="form-group">
-            <label class="form-label">用户名</label>
-            <input
-              v-model="securitySettings.username"
-              type="text"
-              class="form-input"
-              placeholder="留空表示无用户名"
-            />
+    <div class="settings-layout">
+      <div class="settings-side">
+        <!-- 管理员设置 -->
+        <div class="settings-card admin-card">
+          <div class="card-header">
+            <v-icon size="20" class="card-icon">mdi-shield-account</v-icon>
+            <h3 class="card-title">管理员设置</h3>
           </div>
-          <div class="form-group">
-            <label class="form-label">密码</label>
-            <div class="password-input">
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">用户名</label>
               <input
-                v-model="securitySettings.password"
-                :type="showPassword ? 'text' : 'password'"
+                v-model="securitySettings.username"
+                type="text"
                 class="form-input"
-                placeholder="留空表示不修改"
+                placeholder="留空表示无用户名"
               />
-              <button
-                type="button"
-                class="password-toggle"
-                @click="showPassword = !showPassword"
-              >
-                <v-icon size="18">{{ showPassword ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
-              </button>
             </div>
-            <div v-if="securitySettings.password" class="password-strength">
-              <div class="strength-bar">
-                <div
-                  class="strength-fill"
-                  :class="passwordStrength.class"
-                  :style="{ width: passwordStrength.percent + '%' }"
-                ></div>
+            <div class="form-group">
+              <label class="form-label">密码</label>
+              <div class="password-input">
+                <input
+                  v-model="securitySettings.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  class="form-input"
+                  placeholder="留空表示不修改"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  @click="showPassword = !showPassword"
+                >
+                  <v-icon size="18">{{ showPassword ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+                </button>
               </div>
-              <span class="strength-text" :class="passwordStrength.class">
-                {{ passwordStrength.text }}
-              </span>
+              <div v-if="securitySettings.password" class="password-strength">
+                <div class="strength-bar">
+                  <div
+                    class="strength-fill"
+                    :class="passwordStrength.class"
+                    :style="{ width: passwordStrength.percent + '%' }"
+                  ></div>
+                </div>
+                <span class="strength-text" :class="passwordStrength.class">
+                  {{ passwordStrength.text }}
+                </span>
+              </div>
+            </div>
+            <button class="btn-primary" @click="saveSecurity" :disabled="saving">
+              <v-icon v-if="saving" size="16" class="spinning">mdi-loading</v-icon>
+              <v-icon v-else size="16">mdi-content-save</v-icon>
+              {{ saving ? '保存中...' : '保存' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 安全说明 -->
+        <div class="settings-card info-card">
+          <div class="card-header">
+            <v-icon size="20" class="card-icon">mdi-information</v-icon>
+            <h3 class="card-title">安全说明</h3>
+          </div>
+          <div class="card-body">
+            <div class="info-list">
+              <div class="info-item">
+                <div class="info-icon info-icon-primary">
+                  <v-icon size="16">mdi-account-key</v-icon>
+                </div>
+                <div class="info-content">
+                  <p class="info-title">管理员账号</p>
+                  <p class="info-desc">用于登录管理后台，管理文件和配置</p>
+                </div>
+              </div>
+              <div class="info-item">
+                <div class="info-icon info-icon-warning">
+                  <v-icon size="16">mdi-shield-alert</v-icon>
+                </div>
+                <div class="info-content">
+                  <p class="info-title">密码安全</p>
+                  <p class="info-desc">建议设置强密码，定期更换</p>
+                </div>
+              </div>
+              <div class="info-item">
+                <div class="info-icon info-icon-info">
+                  <v-icon size="16">mdi-cookie</v-icon>
+                </div>
+                <div class="info-content">
+                  <p class="info-title">会话管理</p>
+                  <p class="info-desc">登录状态通过 Cookie 保存，有效期 14 天</p>
+                </div>
+              </div>
+              <div class="info-item">
+                <div class="info-icon info-icon-success">
+                  <v-icon size="16">mdi-account-key</v-icon>
+                </div>
+                <div class="info-content">
+                  <p class="info-title">API Token</p>
+                  <p class="info-desc">外部脚本可用 <code>Authorization: Bearer</code> 头调用上传接口</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="warning-box">
+              <v-icon size="16" color="warning">mdi-alert</v-icon>
+              <div>
+                <p><strong>忘记密码？</strong></p>
+                <p>在 Cloudflare Dashboard 中进入你的 Pages 项目，找到绑定的 KV 或 D1 数据库，删除键名为 <code>manage@sysConfig@security</code> 的记录即可重置。</p>
+              </div>
             </div>
           </div>
-          <button class="btn-primary" @click="saveSecurity" :disabled="saving">
-            <v-icon v-if="saving" size="16" class="spinning">mdi-loading</v-icon>
-            <v-icon v-else size="16">mdi-content-save</v-icon>
-            {{ saving ? '保存中...' : '保存' }}
-          </button>
         </div>
       </div>
 
-      <!-- API Token -->
-      <div class="settings-card">
-        <div class="card-header">
-          <v-icon size="20" class="card-icon">mdi-key-variant</v-icon>
-          <h3 class="card-title">API Token 管理</h3>
-        </div>
-        <div class="card-body">
-          <div class="token-form">
-            <div class="form-group">
-              <label class="form-label">Token 名称</label>
-              <input
-                v-model="tokenForm.name"
-                type="text"
-                class="form-input"
-                placeholder="例如 upload-client"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Owner</label>
-              <input
-                v-model="tokenForm.owner"
-                type="text"
-                class="form-input"
-                placeholder="例如 admin"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">权限</label>
-              <div class="permission-grid">
-                <label
-                  v-for="permission in permissionOptions"
-                  :key="permission.key"
-                  class="permission-item"
-                >
-                  <input
-                    v-model="selectedPermissions"
-                    type="checkbox"
-                    :value="permission.key"
-                  />
-                  <span class="permission-copy">
-                    <span class="permission-title">{{ permission.label }}</span>
-                    <span class="permission-desc">{{ permission.description }}</span>
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <button class="btn-primary" type="button" @click="createToken" :disabled="creatingToken">
-              <v-icon v-if="creatingToken" size="16" class="spinning">mdi-loading</v-icon>
-              <v-icon v-else size="16">mdi-plus</v-icon>
-              {{ creatingToken ? '创建中...' : '创建 Token' }}
-            </button>
+      <div class="settings-main">
+        <!-- API Token -->
+        <div class="settings-card token-card">
+          <div class="card-header">
+            <v-icon size="20" class="card-icon">mdi-key-variant</v-icon>
+            <h3 class="card-title">API Token 管理</h3>
           </div>
+          <div class="card-body">
+            <div class="token-form">
+              <div class="form-group">
+                <label class="form-label">Token 名称</label>
+                <input
+                  v-model="tokenForm.name"
+                  type="text"
+                  class="form-input"
+                  placeholder="例如 upload-client"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Owner</label>
+                <input
+                  v-model="tokenForm.owner"
+                  type="text"
+                  class="form-input"
+                  placeholder="例如 admin"
+                />
+              </div>
+
+              <div class="form-group token-permissions-group">
+                <label class="form-label">权限</label>
+                <div class="permission-grid">
+                  <label
+                    v-for="permission in permissionOptions"
+                    :key="permission.key"
+                    class="permission-item"
+                  >
+                    <input
+                      v-model="selectedPermissions"
+                      type="checkbox"
+                      :value="permission.key"
+                    />
+                    <span class="permission-copy">
+                      <span class="permission-title">{{ permission.label }}</span>
+                      <span class="permission-desc">{{ permission.description }}</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <button class="btn-primary" type="button" @click="createToken" :disabled="creatingToken">
+                <v-icon v-if="creatingToken" size="16" class="spinning">mdi-loading</v-icon>
+                <v-icon v-else size="16">mdi-plus</v-icon>
+                {{ creatingToken ? '创建中...' : '创建 Token' }}
+              </button>
+            </div>
 
           <div v-if="createdToken" class="token-result-box">
             <div class="token-result-head">
@@ -196,61 +255,6 @@
               <p>Token 只会在创建后完整显示一次，列表里只保留掩码。</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 安全说明 -->
-      <div class="settings-card">
-        <div class="card-header">
-          <v-icon size="20" class="card-icon">mdi-information</v-icon>
-          <h3 class="card-title">安全说明</h3>
-        </div>
-        <div class="card-body">
-          <div class="info-list">
-            <div class="info-item">
-              <div class="info-icon info-icon-primary">
-                <v-icon size="16">mdi-account-key</v-icon>
-              </div>
-              <div class="info-content">
-                <p class="info-title">管理员账号</p>
-                <p class="info-desc">用于登录管理后台，管理文件和配置</p>
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-icon info-icon-warning">
-                <v-icon size="16">mdi-shield-alert</v-icon>
-              </div>
-              <div class="info-content">
-                <p class="info-title">密码安全</p>
-                <p class="info-desc">建议设置强密码，定期更换</p>
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-icon info-icon-info">
-                <v-icon size="16">mdi-cookie</v-icon>
-              </div>
-              <div class="info-content">
-                <p class="info-title">会话管理</p>
-                <p class="info-desc">登录状态通过 Cookie 保存，有效期 14 天</p>
-              </div>
-            </div>
-            <div class="info-item">
-              <div class="info-icon info-icon-success">
-                <v-icon size="16">mdi-account-key</v-icon>
-              </div>
-              <div class="info-content">
-                <p class="info-title">API Token</p>
-                <p class="info-desc">外部脚本可用 <code>Authorization: Bearer</code> 头调用上传接口</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="warning-box">
-            <v-icon size="16" color="warning">mdi-alert</v-icon>
-            <div>
-              <p><strong>忘记密码？</strong></p>
-              <p>在 Cloudflare Dashboard 中进入你的 Pages 项目，找到绑定的 KV 或 D1 数据库，删除键名为 <code>manage@sysConfig@security</code> 的记录即可重置。</p>
-            </div>
           </div>
         </div>
       </div>
@@ -511,11 +515,24 @@ function showToast(message, type = 'success') {
   color: var(--text-secondary);
 }
 
-/* 设置网格 */
-.settings-grid {
+/* 设置布局 */
+.settings-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
   gap: var(--space-lg);
+  align-items: start;
+}
+
+.settings-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.settings-main,
+.token-card {
+  min-width: 0;
 }
 
 .settings-card {
@@ -735,7 +752,22 @@ function showToast(message, type = 'success') {
 
 /* API Token */
 .token-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-lg);
   margin-bottom: var(--space-lg);
+}
+
+.token-form .form-group {
+  margin-bottom: 0;
+}
+
+.token-permissions-group {
+  grid-column: 1 / -1;
+}
+
+.token-form .btn-primary {
+  justify-self: start;
 }
 
 .permission-grid {
@@ -1103,17 +1135,41 @@ function showToast(message, type = 'success') {
 }
 
 /* 响应式 */
+@media (max-width: 1100px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-side,
+  .settings-main {
+    display: contents;
+  }
+
+  .admin-card {
+    order: 1;
+  }
+
+  .token-card {
+    order: 2;
+  }
+
+  .info-card {
+    order: 3;
+  }
+}
+
 @media (max-width: 768px) {
   .page-container {
     padding: var(--space-lg);
   }
-  
-  .settings-grid {
+
+  .token-form,
+  .permission-grid {
     grid-template-columns: 1fr;
   }
 
-  .permission-grid {
-    grid-template-columns: 1fr;
+  .token-permissions-group {
+    grid-column: auto;
   }
 
   .token-secret-row,
