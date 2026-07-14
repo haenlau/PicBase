@@ -10,7 +10,7 @@
     "node": ">=22.16.0 <25"
   },
   "scripts": {
-    "frontend:install": "npm ci --prefix frontend",
+    "frontend:install": "npm install --prefix frontend --no-fund --no-audit --progress=false",
     "dev": "npm --prefix frontend run dev",
     "build": "npm run frontend:install && npm --prefix frontend run build",
     "build:fast": "npm --prefix frontend run build",
