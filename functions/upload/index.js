@@ -3,7 +3,7 @@ import { fetchUploadConfig, fetchSecurityConfig } from "../utils/sysConfig.js";
 import {
     createResponse, getUploadIp, getIPAddress, resolveFileExt,
     moderateContent, purgeCDNCache, isBlockedUploadIp, buildUniqueFileId, endUpload, getImageDimensions,
-    sanitizeUploadFolder
+    resolveUploadFolder, getUploadBaseFileName
 } from "./uploadTools.js";
 import { initializeChunkedUpload, handleChunkUpload, uploadLargeFileToTelegram, handleCleanupRequest } from "./chunkUpload.js";
 import { handleChunkMerge } from "./chunkMerge.js";
@@ -94,12 +94,6 @@ async function processFileUpload(context, formdata = null) {
     const uploadIp = getUploadIp(request);
     const ipAddress = await getIPAddress(uploadIp);
 
-    // 获取上传文件夹路径
-    let uploadFolder = url.searchParams.get('uploadFolder') || '';
-
-    // 路径安全性处理：防止路径穿越和特殊字符注入
-    uploadFolder = sanitizeUploadFolder(uploadFolder);
-
     let uploadChannel = 'TelegramNew';
     switch (urlParamUploadChannel) {
         case 'telegram':
@@ -175,15 +169,12 @@ async function processFileUpload(context, formdata = null) {
         }
     }
 
-    // 如果上传文件夹路径为空，尝试从文件名中获取
-    if (uploadFolder === '' || uploadFolder === null || uploadFolder === undefined) {
-        uploadFolder = fileName.split('/').slice(0, -1).join('/');
-        // 对从文件名中提取的路径也进行安全处理
-        uploadFolder = sanitizeUploadFolder(uploadFolder);
-        // 从文件名中去除路径信息，只保留文件名部分
-        fileName = fileName.split('/').pop();
-    }
-    // uploadFolder 已经过 sanitizeUploadFolder 处理，直接使用
+    // uploadFolder 显式传入时优先使用参数；未传时兼容从 filename 中推断路径。
+    let uploadFolder = resolveUploadFolder(url, fileName);
+    context.normalizedUploadFolder = uploadFolder;
+
+    // 元数据中的文件名只保留 basename，避免把目录片段写进显示名。
+    fileName = getUploadBaseFileName(fileName);
     const normalizedFolder = uploadFolder;
 
     const metadata = {

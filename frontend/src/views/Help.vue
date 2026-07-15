@@ -283,11 +283,16 @@
                   <td class="font-weight-bold">文件字段</td>
                   <td><code>file</code></td>
                 </tr>
+                <tr>
+                  <td class="font-weight-bold">上传目录</td>
+                  <td><code>uploadFolder</code> 可选；不传或传 <code>/</code> 表示根目录，传 <code>album/2026</code> 表示子目录</td>
+                </tr>
               </tbody>
             </v-table>
 
             <v-sheet class="api-code pa-3" rounded="sm">
-              <pre><code>curl.exe -X POST "https://你的域名/upload" -H "Authorization: Bearer imgbed_xxx" -F "file=@C:\path\image.png"</code></pre>
+              <pre><code>curl.exe -X POST "https://你的域名/upload?uploadFolder=/" -H "Authorization: Bearer imgbed_xxx" -F "file=@C:\path\image.png"
+curl.exe -X POST "https://你的域名/upload?uploadFolder=album/2026" -H "Authorization: Bearer imgbed_xxx" -F "file=@C:\path\image.png"</code></pre>
             </v-sheet>
           </v-card-text>
         </v-card>

@@ -126,6 +126,34 @@ export function sanitizeUploadFolder(folder) {
     return sanitizedSegments.join('/');
 }
 
+/**
+ * 从上传参数和文件名中解析最终目录。
+ * - 显式传 uploadFolder（包括 / 或空值）时，以参数为准
+ * - 未传 uploadFolder 时，兼容从 filename 的斜杠路径中推断目录
+ * @param {URL} url - 请求 URL
+ * @param {string} fileName - 原始文件名
+ * @returns {string} 标准化后的目录，根目录为空字符串
+ */
+export function resolveUploadFolder(url, fileName = '') {
+    const hasUploadFolderParam = url.searchParams.has('uploadFolder');
+    if (hasUploadFolderParam) {
+        return sanitizeUploadFolder(url.searchParams.get('uploadFolder') || '');
+    }
+
+    const embeddedFolder = String(fileName || '').split('/').slice(0, -1).join('/');
+    return sanitizeUploadFolder(embeddedFolder);
+}
+
+/**
+ * 去掉上传文件名中携带的目录部分。
+ * @param {string} fileName - 原始文件名
+ * @returns {string} 仅包含文件名的部分
+ */
+export function getUploadBaseFileName(fileName) {
+    const value = String(fileName || '');
+    return value.split('/').pop() || value;
+}
+
 // 检查文件扩展名是否有效
 export function isExtValid(fileExt) {
     return ['jpeg', 'jpg', 'png', 'gif', 'webp',
@@ -346,7 +374,9 @@ export async function endUpload(context, fileId, metadata) {
 
     // 清除CDN缓存
     const cdnUrl = `https://${url.hostname}/file/${fileId}`;
-    const normalizedFolder = sanitizeUploadFolder(url.searchParams.get('uploadFolder') || '');
+    const normalizedFolder = Object.prototype.hasOwnProperty.call(context, 'normalizedUploadFolder')
+        ? context.normalizedUploadFolder
+        : sanitizeUploadFolder(metadata?.Directory || url.searchParams.get('uploadFolder') || '');
     const purgePromise = purgeCDNCache(env, cdnUrl, url, normalizedFolder);
     if (typeof waitUntil === 'function') {
         waitUntil(purgePromise);
@@ -405,12 +435,12 @@ export async function buildUniqueFileId(context, fileName, fileType = 'applicati
     const fileExt = resolveFileExt(fileName, fileType);
 
     const nameType = url.searchParams.get('uploadNameType') || 'default';
-    const uploadFolder = url.searchParams.get('uploadFolder') || '';
-    // 对上传路径进行安全处理
-    const normalizedFolder = sanitizeUploadFolder(uploadFolder);
+    const normalizedFolder = Object.prototype.hasOwnProperty.call(context, 'normalizedUploadFolder')
+        ? context.normalizedUploadFolder
+        : resolveUploadFolder(url, fileName);
 
     // 处理文件名，移除特殊字符
-    fileName = sanitizeFileName(fileName);
+    fileName = sanitizeFileName(getUploadBaseFileName(fileName));
 
     const unique_index = Date.now() + Math.floor(Math.random() * 10000);
     let baseId = '';
