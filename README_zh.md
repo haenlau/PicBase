@@ -89,6 +89,38 @@ PicBase/
 └── README.md
 ```
 
+## API 使用
+
+在管理端“安全设置”中创建 API Token，并按实际用途勾选权限：
+
+- 上传文件需要 `upload` 权限
+- 删除文件需要 `delete` 权限
+
+上传到根目录：
+
+```bash
+curl -X POST "https://你的域名/upload?uploadFolder=/" \
+  -H "Authorization: Bearer imgbed_xxx" \
+  -F "file=@/path/to/image.png"
+```
+
+上传到 `post` 目录：
+
+```bash
+curl -X POST "https://你的域名/upload?uploadFolder=post" \
+  -H "Authorization: Bearer imgbed_xxx" \
+  -F "file=@/path/to/image.png"
+```
+
+删除已上传文件：
+
+```bash
+curl -X DELETE "https://你的域名/api/manage/delete/post/image.png" \
+  -H "Authorization: Bearer imgbed_xxx"
+```
+
+如果上传接口返回 `/file/post/image.png`，删除时去掉 `/file/` 前缀，使用 `/api/manage/delete/post/image.png`。
+
 ## 许可证
 
 MIT 许可证 - 详见 [LICENSE](LICENSE)

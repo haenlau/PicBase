@@ -124,6 +124,38 @@ PicBase/
 | POST | `/api/manage/move/:path` | Move file |
 | GET | `/api/manage/metadata/:path` | Get metadata |
 
+### API Token Examples
+
+Create an API Token in the admin Settings page, then grant only the permissions you need:
+
+- Uploading files requires the `upload` permission
+- Deleting files requires the `delete` permission
+
+Upload to the root directory:
+
+```bash
+curl -X POST "https://your-domain/upload?uploadFolder=/" \
+  -H "Authorization: Bearer imgbed_xxx" \
+  -F "file=@/path/to/image.png"
+```
+
+Upload to the `post` directory:
+
+```bash
+curl -X POST "https://your-domain/upload?uploadFolder=post" \
+  -H "Authorization: Bearer imgbed_xxx" \
+  -F "file=@/path/to/image.png"
+```
+
+Delete an uploaded file:
+
+```bash
+curl -X DELETE "https://your-domain/api/manage/delete/post/image.png" \
+  -H "Authorization: Bearer imgbed_xxx"
+```
+
+If the upload API returns `/file/post/image.png`, remove the `/file/` prefix when deleting and call `/api/manage/delete/post/image.png`.
+
 ### Configuration
 
 | Method | Path | Description |
